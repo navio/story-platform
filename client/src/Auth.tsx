@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Link,
+  CircularProgress
+} from '@mui/material';
 
 type AuthView = 'sign-in' | 'sign-up';
 
@@ -25,109 +34,98 @@ export default function Auth() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100vw',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#faf9f6',
-      overflow: 'auto'
-    }}>
-      <form
+    <Box
+      minHeight="100vh"
+      width="100vw"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      bgcolor="#faf9f6"
+      overflow="auto"
+    >
+      <Paper
+        elevation={4}
+        sx={{
+          p: 4,
+          minWidth: { xs: '90vw', sm: 400 },
+          maxWidth: 400,
+          borderRadius: 3,
+          boxShadow: 3,
+        }}
+        component="form"
         onSubmit={handleAuth}
-        className="paper-container"
       >
-        <h2 style={{ marginBottom: '1rem', textAlign: 'center' }}>
+        <Typography variant="h5" align="center" mb={2} fontWeight={600}>
           {view === 'sign-in' ? 'Sign In' : 'Sign Up'}
-        </h2>
-        <input
+        </Typography>
+        <TextField
           type="email"
-          placeholder="Email"
+          label="Email"
           value={email}
           required
           onChange={e => setEmail(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            border: '1px solid #ddd'
-          }}
+          fullWidth
+          margin="normal"
+          autoComplete="email"
         />
-        <input
+        <TextField
           type="password"
-          placeholder="Password"
+          label="Password"
           value={password}
           required
           onChange={e => setPassword(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            border: '1px solid #ddd'
-          }}
+          fullWidth
+          margin="normal"
+          autoComplete="current-password"
         />
         {error && (
-          <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+          <Typography color="error" align="center" mt={1} mb={1}>
             {error}
-          </div>
+          </Typography>
         )}
-        <button
+        <Button
           type="submit"
+          variant="contained"
+          color="primary"
+          fullWidth
+          sx={{ py: 1.5, fontWeight: 600, mt: 1 }}
           disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            borderRadius: '4px',
-            border: 'none',
-            background: '#222',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
+          endIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
           {loading ? 'Loading...' : (view === 'sign-in' ? 'Sign In' : 'Sign Up')}
-        </button>
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+        </Button>
+        <Box mt={2} textAlign="center">
           {view === 'sign-in' ? (
             <>
-              Don't have an account?{' '}
-              <button
-                type="button"
+              <Typography variant="body2" component="span">
+                Don't have an account?{' '}
+              </Typography>
+              <Link
+                component="button"
+                variant="body2"
                 onClick={() => setView('sign-up')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#0070f3',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
+                sx={{ textDecoration: 'underline', color: 'primary.main' }}
               >
                 Sign Up
-              </button>
+              </Link>
             </>
           ) : (
             <>
-              Already have an account?{' '}
-              <button
-                type="button"
+              <Typography variant="body2" component="span">
+                Already have an account?{' '}
+              </Typography>
+              <Link
+                component="button"
+                variant="body2"
                 onClick={() => setView('sign-in')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#0070f3',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
+                sx={{ textDecoration: 'underline', color: 'primary.main' }}
               >
                 Sign In
-              </button>
+              </Link>
             </>
           )}
-        </div>
-      </form>
-    </div>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
