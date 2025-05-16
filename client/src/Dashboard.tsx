@@ -152,7 +152,13 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         <button onClick={() => setSelectedStory(null)} style={{ marginBottom: 16 }}>← Back to Stories</button>
         <h2>{selectedStory.title}</h2>
         <div style={{ margin: '1rem 0', minHeight: 200 }}>
-          {chapters.length === 0 && <p>No chapters yet.</p>}
+          {addingChapter && (
+            <div style={{ textAlign: 'center', margin: '2rem 0', color: '#888', fontStyle: 'italic' }}>
+              <span role="img" aria-label="Loading" style={{ fontSize: 24, marginRight: 8 }}>⏳</span>
+              Generating next chapter...
+            </div>
+          )}
+          {chapters.length === 0 && !addingChapter && <p>No chapters yet.</p>}
           {chapters.map(ch => (
             <div key={ch.id} style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600 }}>Chapter {ch.chapter_number}</div>
