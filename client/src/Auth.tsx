@@ -9,6 +9,7 @@ import {
   Link,
   CircularProgress
 } from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
 
 type AuthView = 'sign-in' | 'sign-up';
 
@@ -93,6 +94,32 @@ export default function Auth() {
           endIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
           {loading ? 'Loading...' : (view === 'sign-in' ? 'Sign In' : 'Sign Up')}
+        </Button>
+        <Button
+          variant="outlined"
+          color="inherit"
+          fullWidth
+          startIcon={<GoogleIcon />}
+          sx={{ py: 1.5, fontWeight: 600, mt: 2, mb: 1, borderColor: '#4285F4', color: '#4285F4', '&:hover': { borderColor: '#4285F4', background: '#f5faff' } }}
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              // Debug: log the redirect URL in production
+              console.log("OAuth redirectTo:", window.location.origin);
+              const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin }
+              });
+              if (error) setError(error.message);
+            } catch (err: any) {
+              setError(err.message);
+            }
+            setLoading(false);
+          }}
+          disabled={loading}
+        >
+          Sign in with Google
         </Button>
         <Box mt={2} textAlign="center">
           {view === 'sign-in' ? (
