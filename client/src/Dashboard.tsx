@@ -27,6 +27,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
 type Story = {
   id: string;
@@ -62,6 +63,10 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // For delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
 
   // Fetch stories for the current user
   useEffect(() => {
@@ -336,29 +341,73 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                 </Box>
               ))}
             </Box>
-            <Box component="form" onSubmit={handleAddChapter} mt={3}>
-              <TextField
-                value={newPrompt}
-                onChange={e => setNewPrompt(e.target.value)}
-                placeholder="Write the next part or prompt the agent..."
-                label="Next prompt"
-                multiline
-                rows={3}
-                fullWidth
-                required
-                margin="normal"
-              />
+            <Box display="flex" gap={2} mt={3}>
               <Button
-                type="submit"
                 variant="contained"
-                color="primary"
-                fullWidth
-                disabled={addingChapter || !newPrompt}
-                sx={{ py: 1.5, fontWeight: 600, mt: 1 }}
-                endIcon={addingChapter ? <CircularProgress size={18} color="inherit" /> : null}
+                color="info"
+                sx={{
+                  py: 1.5,
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  minWidth: 160,
+                  boxShadow: 3,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                }}
+                disabled={addingChapter}
+                onClick={async () => {
+                  if (!selectedStory) return;
+                  setAddingChapter(true);
+                  setError(null);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) throw new Error('Not authenticated');
+                    const res = await fetch(`${EDGE_BASE}/continue_story`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                      },
+                      body: JSON.stringify({
+                        story_id: selectedStory.id,
+                        prompt: "",
+                      }),
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result.error || 'Failed to add chapter');
+                    setChapters([...chapters, result.chapter]);
+                  } catch (err: any) {
+                    setError(err.message);
+                  }
+                  setAddingChapter(false);
+                }}
               >
-                {addingChapter ? 'Adding...' : 'Add Chapter'}
+                Continue
               </Button>
+              <Box component="form" onSubmit={handleAddChapter} flex={1}>
+                <TextField
+                  value={newPrompt}
+                  onChange={e => setNewPrompt(e.target.value)}
+                  placeholder="Write the next part or prompt the agent..."
+                  label="Next prompt"
+                  multiline
+                  rows={3}
+                  fullWidth
+                  required
+                  margin="normal"
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  disabled={addingChapter || !newPrompt}
+                  sx={{ py: 1.5, fontWeight: 600, mt: 1 }}
+                  endIcon={addingChapter ? <CircularProgress size={18} color="inherit" /> : null}
+                >
+                  {addingChapter ? 'Adding...' : 'Add Chapter'}
+                </Button>
+              </Box>
             </Box>
             {error && (
               <Typography color="error" mt={2}>
@@ -430,7 +479,6 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               {stories.map(story => (
                 <ListItem
                   key={story.id}
-                  onClick={() => setSelectedStory(story)}
                   sx={{
                     borderRadius: 2,
                     mb: 1,
@@ -443,12 +491,53 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                       selectedStory && (selectedStory as any).id === story.id
                         ? 'action.selected'
                         : undefined,
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
-                  <ListItemText
-                    primary={story.title}
-                    secondary={`${story.status} • ${new Date(story.updated_at).toLocaleString()}`}
-                  />
+                  <Box
+                    flex={1}
+                    onClick={() => setSelectedStory(story)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <ListItemText
+                      primary={story.title}
+                      secondary={`${story.status} • ${new Date(story.updated_at).toLocaleString()}`}
+                    />
+                  </Box>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    color="error"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      setLoading(true);
+                      setError(null);
+                      // Delete chapters first (to avoid FK constraint), then story
+                      const { error: chaptersError } = await supabase
+                        .from('chapters')
+                        .delete()
+                        .eq('story_id', story.id);
+                      const { error: storyError } = await supabase
+                        .from('stories')
+                        .delete()
+                        .eq('id', story.id);
+                      if (chaptersError || storyError) {
+                        setError(
+                          chaptersError?.message ||
+                          storyError?.message ||
+                          'Failed to delete story'
+                        );
+                      } else {
+                        setStories((prev) => prev.filter((s) => (s as Story).id !== story.id));
+                        if ((selectedStory as Story | null)?.id === story.id) setSelectedStory(null);
+                      }
+                      setLoading(false);
+                    }}
+                    sx={{ ml: 1 }}
+                  >
+                    <span role="img" aria-label="Delete">❌</span>
+                  </IconButton>
                 </ListItem>
               ))}
             </List>
@@ -485,6 +574,59 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         </Stack>
       </Container>
       {NewStoryDialog}
+{/* Delete Confirmation Dialog */}
+  <Dialog
+    open={deleteDialogOpen}
+    onClose={() => setDeleteDialogOpen(false)}
+    maxWidth="xs"
+    fullWidth
+  >
+    <DialogTitle>Confirm Delete</DialogTitle>
+    <DialogContent>
+      <Typography>
+        Are you sure you want to erase the story{' '}
+        <b>{storyToDelete?.title}</b>? This will permanently remove the story and all its chapters.
+      </Typography>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => setDeleteDialogOpen(false)} color="secondary">
+        Cancel
+      </Button>
+      <Button
+        onClick={async () => {
+          if (!storyToDelete) return;
+          setLoading(true);
+          setError(null);
+          setDeleteDialogOpen(false);
+          // Delete chapters first (to avoid FK constraint), then story
+          const { error: chaptersError } = await supabase
+            .from('chapters')
+            .delete()
+            .eq('story_id', storyToDelete.id);
+          const { error: storyError } = await supabase
+            .from('stories')
+            .delete()
+            .eq('id', storyToDelete.id);
+          if (chaptersError || storyError) {
+            setError(
+              chaptersError?.message ||
+              storyError?.message ||
+              'Failed to delete story'
+            );
+          } else {
+            setStories((prev) => prev.filter((s) => (s as Story).id !== storyToDelete.id));
+            if ((selectedStory as Story | null)?.id === storyToDelete.id) setSelectedStory(null);
+          }
+          setLoading(false);
+          setStoryToDelete(null);
+        }}
+        color="error"
+        variant="contained"
+      >
+        Erase
+      </Button>
+    </DialogActions>
+  </Dialog>
     </Box>
   );
 }
