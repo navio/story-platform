@@ -20,7 +20,13 @@ async function generateChapter(prompt: string, preferences: any) {
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
-      { role: "system", content: "You are a creative story-telling assistant. Write a captivating first chapter for a story based on the user's prompt." },
+      {
+        role: "system",
+        content: `You are a creative story-telling assistant. Write a captivating first chapter for a story based on the user's prompt.
+The user has requested the following chapter length: "${preferences?.chapter_length || "A full paragraph"}".
+Please ensure your response matches this length: ${preferences?.chapter_length || "A full paragraph"}.
+If the user has also provided a structural prompt, follow it as well.`
+      },
       { role: "user", content: prompt }
     ],
     max_tokens: 512,
@@ -91,10 +97,22 @@ serve(async (req) => {
     function isReadingLevel(val) {
       return typeof val === "number" && val >= 0 && val <= 12;
     }
+    function isChapterLength(val) {
+      return (
+        typeof val === "string" &&
+        [
+          "A sentence",
+          "A few sentences",
+          "A small paragraph",
+          "A full paragraph",
+          "A few paragraphs"
+        ].includes(val)
+      );
+    }
     if (
       (reading_level !== undefined && !isReadingLevel(reading_level)) ||
       (story_length !== undefined && !isPositiveInt(story_length)) ||
-      (chapter_length !== undefined && !isPositiveInt(chapter_length)) ||
+      (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));

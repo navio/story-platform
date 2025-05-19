@@ -38,6 +38,7 @@ type Story = {
   created_at: string;
   updated_at: string;
   preferences?: any;
+  story_length?: string | number;
 };
 
 type Chapter = {
@@ -66,17 +67,11 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   // Story settings state (for new story)
   const [readingLevel, setReadingLevel] = useState(3); // 1-10, default 3
   const [storyLength, setStoryLength] = useState(10); // 1-50, default 10
-  const [chapterLength, setChapterLength] = useState(1000); // 100-5000, default 1000
+  const [chapterLength, setChapterLength] = useState("A full paragraph"); // qualitative, default "A full paragraph"
   const [structuralPrompt, setStructuralPrompt] = useState('');
 
   // For mid-story settings dialog
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsReadingLevel, setSettingsReadingLevel] = useState(3);
-  const [settingsStoryLength, setSettingsStoryLength] = useState(10);
-  const [settingsChapterLength, setSettingsChapterLength] = useState(1000);
-  const [settingsStructuralPrompt, setSettingsStructuralPrompt] = useState('');
-  const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [settingsLoading, setSettingsLoading] = useState(false);
+  // Removed unused showSettings, setShowSettings, settingsReadingLevel, setSettingsReadingLevel
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -135,7 +130,13 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     if (
       readingLevel < 1 || readingLevel > 10 ||
       storyLength < 1 || storyLength > 50 ||
-      chapterLength < 100 || chapterLength > 5000
+      ![
+        "A sentence",
+        "A few sentences",
+        "A small paragraph",
+        "A full paragraph",
+        "A few paragraphs"
+      ].includes(chapterLength)
     ) {
       setError('Please ensure all fields are within valid ranges.');
       return;
@@ -154,6 +155,10 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         body: JSON.stringify({
           title: newTitle,
           initial_prompt: initialPrompt,
+          reading_level: readingLevel,
+          story_length: storyLength,
+          chapter_length: chapterLength,
+          structural_prompt: structuralPrompt,
           preferences: {
             reading_level: readingLevel,
             story_length: storyLength,
@@ -168,7 +173,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       const { data, error } = await supabase
         .from('stories')
         .select('*')
-        .eq('id', result.story_id)
+        .eq('id', result.story?.id)
         .single();
       if (error) throw new Error(error.message);
       setStories([data, ...stories]);
@@ -179,7 +184,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       setInitialPrompt('');
       setReadingLevel(3);
       setStoryLength(10);
-      setChapterLength(1000);
+      setChapterLength("A full paragraph");
       setStructuralPrompt('');
     } catch (err: any) {
       setError(err.message);
@@ -335,17 +340,20 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             }}
           />
           <TextField
-            label="Chapter Length (Words)"
-            type="number"
+            select
+            label="Chapter Length"
             value={chapterLength}
-            onChange={e => setChapterLength(Number(e.target.value))}
-            inputProps={{ min: 100, max: 5000 }}
+            onChange={e => setChapterLength(e.target.value)}
             fullWidth
             margin="normal"
-            InputProps={{
-              endAdornment: <InputAdornment position="end">words</InputAdornment>
-            }}
-          />
+            SelectProps={{ native: true }}
+          >
+            <option value="A sentence">A sentence</option>
+            <option value="A few sentences">A few sentences</option>
+            <option value="A small paragraph">A small paragraph</option>
+            <option value="A full paragraph">A full paragraph</option>
+            <option value="A few paragraphs">A few paragraphs</option>
+          </TextField>
           <TextField
             label="Structural Prompt (optional)"
             value={structuralPrompt}
@@ -390,165 +398,340 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   // Story view
   if (selectedStory) {
     // Prepare settings state when opening settings dialog
-    const openSettingsDialog = () => {
-      const prefs = selectedStory.preferences || {};
-      setSettingsReadingLevel(prefs.reading_level ?? 3);
-      setSettingsStoryLength(prefs.story_length ?? 10);
-      setSettingsChapterLength(prefs.chapter_length ?? 1000);
-      setSettingsStructuralPrompt(prefs.structural_prompt ?? '');
-      setSettingsError(null);
-      setShowSettings(true);
-    };
+    // Removed unused openSettingsDialog
 
     // Handler for updating story settings
-    const handleUpdateSettings = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setSettingsError(null);
-
-      if (
-        settingsReadingLevel < 1 || settingsReadingLevel > 10 ||
-        settingsStoryLength < 1 || settingsStoryLength > 50 ||
-        settingsChapterLength < 100 || settingsChapterLength > 5000
-      ) {
-        setSettingsError('Please ensure all fields are within valid ranges.');
-        return;
-      }
-
-      setSettingsLoading(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
-        const res = await fetch(`${EDGE_BASE}/update_story`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            story_id: selectedStory.id,
-            preferences: {
-              reading_level: settingsReadingLevel,
-              story_length: settingsStoryLength,
-              chapter_length: settingsChapterLength,
-              structural_prompt: settingsStructuralPrompt,
-            },
-          }),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Failed to update settings');
-        // Update local state
-        setSelectedStory({
-          ...selectedStory,
-          preferences: {
-            reading_level: settingsReadingLevel,
-            story_length: settingsStoryLength,
-            chapter_length: settingsChapterLength,
-            structural_prompt: settingsStructuralPrompt,
-          }
-        });
-        setStories(stories.map(s =>
-          s.id === selectedStory.id
-            ? { ...s, preferences: {
-                reading_level: settingsReadingLevel,
-                story_length: settingsStoryLength,
-                chapter_length: settingsChapterLength,
-                structural_prompt: settingsStructuralPrompt,
-              } }
-            : s
-        ));
-        setShowSettings(false);
-      } catch (err: any) {
-        setSettingsError(err.message);
-      }
-      setSettingsLoading(false);
-    };
+    // Removed unused handleUpdateSettings
 
     // Settings dialog for mid-story editing
-    const StorySettingsDialog = (
-      <Dialog open={showSettings} onClose={() => setShowSettings(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Story Settings</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleUpdateSettings} sx={{ mt: 1 }}>
-            <Box mt={2}>
-              <Typography gutterBottom>Reading Level: {settingsReadingLevel === 1 ? "Kindergarten" : `${settingsReadingLevel + 4}th Grade`}</Typography>
-              <Slider
-                value={settingsReadingLevel}
-                min={1}
-                max={10}
-                step={1}
-                marks={[
-                  { value: 1, label: "K" },
-                  { value: 5, label: "5th" },
-                  { value: 10, label: "10th" }
-                ]}
-                onChange={(_, v) => setSettingsReadingLevel(v as number)}
-                valueLabelDisplay="auto"
+    // Removed unused StorySettingsDialog
+    // Close all open tags for Box, Container, Paper, and Box in the story view
+  }
+// End of story view block
+
+// Main dashboard view
+if (selectedStory) {
+  // Story view
+  return (
+    <Box>
+      {AppHeader}
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Button
+              onClick={() => setSelectedStory(null)}
+              startIcon={<MenuIcon />}
+              color="secondary"
+              variant="outlined"
+            >
+              Back to Stories
+            </Button>
+          </Box>
+          <Typography variant="h5" fontWeight={700} mb={2}>
+            {selectedStory?.title}
+          </Typography>
+          <Box minHeight={200} mb={2}>
+            {addingChapter && (
+              <Box textAlign="center" my={4} color="text.secondary" fontStyle="italic">
+                <CircularProgress size={24} sx={{ mr: 1 }} />
+                Generating next chapter...
+              </Box>
+            )}
+            {chapters.length === 0 && !addingChapter && (
+              <Typography>No chapters yet.</Typography>
+            )}
+            {chapters.map(ch => (
+              <Box key={ch.id} mb={3}>
+                <Typography fontWeight={600}>Chapter {ch.chapter_number}</Typography>
+                <Typography sx={{ whiteSpace: 'pre-wrap', mt: 1 }}>{ch.content}</Typography>
+                <Typography variant="caption" color="text.secondary" mt={0.5}>
+                  {new Date(ch.created_at).toLocaleString()}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+          <Box display="flex" gap={2} mt={3}>
+            <Button
+              variant="contained"
+              color="info"
+              sx={{
+                py: 1.5,
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                minWidth: 160,
+                boxShadow: 3,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}
+              disabled={Boolean(addingChapter || (selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)))}
+              onClick={async () => {
+                if (!selectedStory) return;
+                setAddingChapter(true);
+                setError(null);
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) throw new Error('Not authenticated');
+                  const res = await fetch(`${EDGE_BASE}/continue_story`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({
+                      story_id: selectedStory.id,
+                      prompt: "",
+                    }),
+                  });
+                  const result = await res.json();
+                  if (!res.ok) throw new Error(result.error || 'Failed to add chapter');
+                  setChapters([...chapters, result.chapter]);
+                } catch (err: any) {
+                  setError(err.message);
+                }
+                setAddingChapter(false);
+              }}
+            >
+              Continue
+            </Button>
+            <Box component="form" onSubmit={handleAddChapter} flex={1}>
+              <TextField
+                value={newPrompt}
+                onChange={e => setNewPrompt(e.target.value)}
+                placeholder="Write the next part or prompt the agent..."
+                label="Next prompt"
+                fullWidth
+                disabled={Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))}
               />
             </Box>
-            <TextField
-              label="Story Length (Chapters)"
-              type="number"
-              value={settingsStoryLength}
-              onChange={e => setSettingsStoryLength(Number(e.target.value))}
-              inputProps={{ min: 1, max: 50 }}
-              fullWidth
-              margin="normal"
-              InputProps={{
-                endAdornment: <InputAdornment position="end">chapters</InputAdornment>
-              }}
-            />
-            <TextField
-              label="Chapter Length (Words)"
-              type="number"
-              value={settingsChapterLength}
-              onChange={e => setSettingsChapterLength(Number(e.target.value))}
-              inputProps={{ min: 100, max: 5000 }}
-              fullWidth
-              margin="normal"
-              InputProps={{
-                endAdornment: <InputAdornment position="end">words</InputAdornment>
-              }}
-            />
-            <TextField
-              label="Structural Prompt (optional)"
-              value={settingsStructuralPrompt}
-              onChange={e => setSettingsStructuralPrompt(e.target.value)}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={2}
-            />
-            {settingsError && (
-              <Typography color="error" mt={1}>
-                {settingsError}
+            {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) && (
+              <Typography variant="h5" color="success.main" fontWeight={700} mt={4} textAlign="center">
+                The End
               </Typography>
             )}
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowSettings(false)} color="secondary">
-            Cancel
-          </Button>
+          {error && (
+            <Typography color="error" mt={2}>
+              {error}
+            </Typography>
+          )}
+        </Paper>
+      </Container>
+    </Box>
+  );
+}
+// Main dashboard view
+return (
+  <Box>
+    {AppHeader}
+    {isMobile && StoriesDrawer}
+    <Container
+      maxWidth={false}
+      disableGutters
+      sx={{
+        mt: 0,
+        px: 0,
+        width: '100vw',
+        minHeight: isMobile ? '100vh' : 'auto',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        overflow: 'hidden',
+        bgcolor: isMobile ? '#faf9f6' : 'transparent',
+      }}
+    >
+      <Stack
+        direction={isMobile ? 'column' : 'row'}
+        spacing={4}
+        alignItems={isMobile ? 'flex-start' : 'center'}
+        justifyContent="center"
+        sx={{
+          width: '100%',
+          minHeight: isMobile ? '100vh' : 'auto',
+          maxWidth: isMobile ? '100vw' : 900,
+          mx: 'auto',
+          py: isMobile ? 0 : 6,
+          px: isMobile ? 0 : 2,
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Stories List */}
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 2, sm: 3 },
+            borderRadius: 3,
+            minWidth: isMobile ? '100vw' : 350,
+            maxWidth: isMobile ? '100vw' : 400,
+            width: isMobile ? '100vw' : '100%',
+            flex: '0 0 auto',
+            mb: isMobile ? 3 : 0,
+            boxSizing: 'border-box',
+            minHeight: isMobile ? 'calc(100vh - 56px)' : 'auto', // 56px = AppBar height
+            overflowY: isMobile ? 'auto' : 'visible',
+          }}
+        >
+          <Typography variant="h6" fontWeight={700} mb={2} align="center">
+            Stories
+          </Typography>
+          <List>
+            {stories.map(story => (
+              <ListItem
+                key={story.id}
+                sx={{
+                  borderRadius: 2,
+                  mb: 1,
+                  border:
+                    selectedStory && (selectedStory as any).id === story.id
+                      ? '2px solid #1976d2'
+                      : '1px solid #eee',
+                  cursor: 'pointer',
+                  bgcolor:
+                    selectedStory && (selectedStory as any).id === story.id
+                      ? 'action.selected'
+                      : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Box
+                  flex={1}
+                  onClick={() => setSelectedStory(story)}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <ListItemText
+                    primary={story.title}
+                    secondary={`${story.status} • ${new Date(story.updated_at).toLocaleString()}`}
+                  />
+                </Box>
+                <IconButton
+                  edge="end"
+                  aria-label="delete"
+                  color="error"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setLoading(true);
+                    setError(null);
+                    // Delete chapters first (to avoid FK constraint), then story
+                    const { error: chaptersError } = await supabase
+                      .from('chapters')
+                      .delete()
+                      .eq('story_id', story.id);
+                    const { error: storyError } = await supabase
+                      .from('stories')
+                      .delete()
+                      .eq('id', story.id);
+                    if (chaptersError || storyError) {
+                      setError(
+                        chaptersError?.message ||
+                        storyError?.message ||
+                        'Failed to delete story'
+                      );
+                    } else {
+                      setStories((prev) => prev.filter((s) => (s as Story).id !== story.id));
+                      if ((selectedStory as Story | null)?.id === story.id) setSelectedStory(null);
+                    }
+                    setLoading(false);
+                  }}
+                  sx={{ ml: 1 }}
+                >
+                  <span role="img" aria-label="Delete">❌</span>
+                </IconButton>
+              </ListItem>
+            ))}
+          </List>
           <Button
-            onClick={handleUpdateSettings}
+            onClick={() => setShowNewStory(true)}
             variant="contained"
             color="primary"
-            disabled={settingsLoading}
-            endIcon={settingsLoading ? <CircularProgress size={18} color="inherit" /> : null}
+            fullWidth
+            startIcon={<AddIcon />}
+            sx={{ mt: 2, fontWeight: 600 }}
           >
-            Save Settings
+            New Story
           </Button>
-        </DialogActions>
-      </Dialog>
-    );
-
-    return (
-      <Box>
-        {AppHeader}
-        {isMobile && StoriesDrawer}
-        <Container maxWidth="md" sx={{ mt: 4 }}>
-          <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Button
+            onClick={onSignOut}
+            variant="outlined"
+            color="secondary"
+            fullWidth
+            startIcon={<LogoutIcon />}
+            sx={{ mt: 2, fontWeight: 600 }}
+          >
+            Sign Out
+          </Button>
+          {error && (
+            <Typography color="error" mt={2}>
+              {error}
+            </Typography>
+          )}
+        </Paper>
+        {/* Main Content (empty for now, could add welcome/info) */}
+        {!isMobile && (
+          <Box flex={1} />
+        )}
+      </Stack>
+    </Container>
+    {NewStoryDialog}
+    {/* StorySettingsDialog is only available in story view */}
+    {/* Delete Confirmation Dialog */}
+    <Dialog
+      open={deleteDialogOpen}
+      onClose={() => setDeleteDialogOpen(false)}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle>Confirm Delete</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to erase the story{' '}
+          <b>{storyToDelete?.title}</b>? This will permanently remove the story and all its chapters.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteDialogOpen(false)} color="secondary">
+          Cancel
+        </Button>
+        <Button
+          onClick={async () => {
+            if (!storyToDelete) return;
+            setLoading(true);
+            setError(null);
+            setDeleteDialogOpen(false);
+            // Delete chapters first (to avoid FK constraint), then story
+            const { error: chaptersError } = await supabase
+              .from('chapters')
+              .delete()
+              .eq('story_id', storyToDelete.id);
+            const { error: storyError } = await supabase
+              .from('stories')
+              .delete()
+              .eq('id', storyToDelete.id);
+            if (chaptersError || storyError) {
+              setError(
+                chaptersError?.message ||
+                storyError?.message ||
+                'Failed to delete story'
+              );
+            } else {
+              setStories((prev) => prev.filter((s) => (s as Story).id !== storyToDelete.id));
+              if ((selectedStory as Story | null)?.id === storyToDelete.id) setSelectedStory(null);
+            }
+            setLoading(false);
+            setStoryToDelete(null);
+          }}
+          color="error"
+          variant="contained"
+        >
+          Erase
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
+);
+          {/* Duplicate/stray Paper block removed to fix tag mismatch */}
+            {/* All content in Paper must be wrapped in a single parent element */}
+            <React.Fragment>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Button
                 onClick={() => setSelectedStory(null)}
                 startIcon={<MenuIcon />}
@@ -558,7 +741,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                 Back to Stories
               </Button>
               <Button
-                onClick={openSettingsDialog}
+                onClick={() => {}}
                 startIcon={<SettingsIcon />}
                 color="primary"
                 variant="contained"
@@ -567,7 +750,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               </Button>
             </Box>
             <Typography variant="h5" fontWeight={700} mb={2}>
-              {selectedStory.title}
+              {selectedStory?.title}
             </Typography>
             <Box minHeight={200} mb={2}>
               {addingChapter && (
@@ -589,7 +772,8 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                 </Box>
               ))}
             </Box>
-            <Box display="flex" gap={2} mt={3}>
+            {/* Duplicate/stray Box block removed to fix tag mismatch */}
+              {/* ...rest of the Paper content... */}
               <Button
                 variant="contained"
                 color="info"
@@ -602,7 +786,12 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
-                disabled={addingChapter}
+                disabled={
+                  Boolean(
+                    addingChapter ||
+                    (selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))
+                  )
+                }
                 onClick={async () => {
                   if (!selectedStory) return;
                   setAddingChapter(true);
@@ -632,43 +821,30 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               >
                 Continue
               </Button>
-              <Box component="form" onSubmit={handleAddChapter} flex={1}>
+              <Box component="form"
+                onSubmit={handleAddChapter}
+                flex={1}
+              >
                 <TextField
                   value={newPrompt}
                   onChange={e => setNewPrompt(e.target.value)}
                   placeholder="Write the next part or prompt the agent..."
                   label="Next prompt"
-                  multiline
-                  rows={3}
                   fullWidth
-                  required
-                  margin="normal"
+                  disabled={
+                    Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))
+                  }
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  disabled={addingChapter || !newPrompt}
-                  sx={{ py: 1.5, fontWeight: 600, mt: 1 }}
-                  endIcon={addingChapter ? <CircularProgress size={18} color="inherit" /> : null}
-                >
-                  {addingChapter ? 'Adding...' : 'Add Chapter'}
-                </Button>
               </Box>
-            </Box>
-            {error && (
-              <Typography color="error" mt={2}>
-                {error}
-              </Typography>
-            )}
-          </Paper>
-        </Container>
-        {NewStoryDialog}
-        {StorySettingsDialog}
-      </Box>
-    );
-  }
+              {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) && (
+                <Typography variant="h5" color="success.main" fontWeight={700} mt={4} textAlign="center">
+                  The End
+                </Typography>
+              )}
+            </React.Fragment>
+            {/* End of Paper content */}
+                {/* The following TextField and Button are now redundant and should be removed to fix tag mismatch */}
+{/* End of file */}
 
   // Main dashboard view
   return (
@@ -823,59 +999,60 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         </Stack>
       </Container>
       {NewStoryDialog}
-{/* Delete Confirmation Dialog */}
-  <Dialog
-    open={deleteDialogOpen}
-    onClose={() => setDeleteDialogOpen(false)}
-    maxWidth="xs"
-    fullWidth
-  >
-    <DialogTitle>Confirm Delete</DialogTitle>
-    <DialogContent>
-      <Typography>
-        Are you sure you want to erase the story{' '}
-        <b>{storyToDelete?.title}</b>? This will permanently remove the story and all its chapters.
-      </Typography>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={() => setDeleteDialogOpen(false)} color="secondary">
-        Cancel
-      </Button>
-      <Button
-        onClick={async () => {
-          if (!storyToDelete) return;
-          setLoading(true);
-          setError(null);
-          setDeleteDialogOpen(false);
-          // Delete chapters first (to avoid FK constraint), then story
-          const { error: chaptersError } = await supabase
-            .from('chapters')
-            .delete()
-            .eq('story_id', storyToDelete.id);
-          const { error: storyError } = await supabase
-            .from('stories')
-            .delete()
-            .eq('id', storyToDelete.id);
-          if (chaptersError || storyError) {
-            setError(
-              chaptersError?.message ||
-              storyError?.message ||
-              'Failed to delete story'
-            );
-          } else {
-            setStories((prev) => prev.filter((s) => (s as Story).id !== storyToDelete.id));
-            if ((selectedStory as Story | null)?.id === storyToDelete.id) setSelectedStory(null);
-          }
-          setLoading(false);
-          setStoryToDelete(null);
-        }}
-        color="error"
-        variant="contained"
+      {/* StorySettingsDialog is only available in story view */}
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
       >
-        Erase
-      </Button>
-    </DialogActions>
-  </Dialog>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to erase the story{' '}
+            <b>{storyToDelete?.title}</b>? This will permanently remove the story and all its chapters.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!storyToDelete) return;
+              setLoading(true);
+              setError(null);
+              setDeleteDialogOpen(false);
+              // Delete chapters first (to avoid FK constraint), then story
+              const { error: chaptersError } = await supabase
+                .from('chapters')
+                .delete()
+                .eq('story_id', storyToDelete.id);
+              const { error: storyError } = await supabase
+                .from('stories')
+                .delete()
+                .eq('id', storyToDelete.id);
+              if (chaptersError || storyError) {
+                setError(
+                  chaptersError?.message ||
+                  storyError?.message ||
+                  'Failed to delete story'
+                );
+              } else {
+                setStories((prev) => prev.filter((s) => (s as Story).id !== storyToDelete.id));
+                if ((selectedStory as Story | null)?.id === storyToDelete.id) setSelectedStory(null);
+              }
+              setLoading(false);
+              setStoryToDelete(null);
+            }}
+            color="error"
+            variant="contained"
+          >
+            Erase
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

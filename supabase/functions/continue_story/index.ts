@@ -19,7 +19,13 @@ async function generateChapter(context: string, prompt: string, preferences: any
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
-      { role: "system", content: "You are a creative story-telling assistant. Continue the story based on the previous chapters and user input." },
+      {
+        role: "system",
+        content: `You are a creative story-telling assistant. Continue the story based on the previous chapters and user input.
+The user has requested the following chapter length: "${preferences?.chapter_length || "A full paragraph"}".
+Please ensure your response matches this length: ${preferences?.chapter_length || "A full paragraph"}.
+If the user has also provided a structural prompt, follow it as well.`
+      },
       { role: "user", content: `Story so far:\n${context}\n\n${userPrompt}` }
     ],
     max_tokens: 512,
@@ -88,10 +94,22 @@ serve(async (req) => {
     function isReadingLevel(val) {
       return typeof val === "number" && val >= 0 && val <= 12;
     }
+    function isChapterLength(val) {
+      return (
+        typeof val === "string" &&
+        [
+          "A sentence",
+          "A few sentences",
+          "A small paragraph",
+          "A full paragraph",
+          "A few paragraphs"
+        ].includes(val)
+      );
+    }
     if (
       (reading_level !== undefined && !isReadingLevel(reading_level)) ||
       (story_length !== undefined && !isPositiveInt(story_length)) ||
-      (chapter_length !== undefined && !isPositiveInt(chapter_length)) ||
+      (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
@@ -134,16 +152,33 @@ serve(async (req) => {
     const context = chapters.map((ch: any) => ch.content).join('\n\n');
 
     // Generate next chapter using latest story parameters
-    const content = await generateChapter(context, prompt, {
-      preferences: story.preferences,
-      reading_level: story.reading_level,
-      story_length: story.story_length,
-      chapter_length: story.chapter_length,
-      structural_prompt: story.structural_prompt
-    });
+    let content;
+    const chapter_number = chapters.length + 1;
+    const isFinalChapter = story.story_length && chapter_number >= Number(story.story_length);
+    if (isFinalChapter) {
+      // Prompt agent to conclude the story and add "The End"
+      content = await generateChapter(context, prompt, {
+        preferences: story.preferences,
+        reading_level: story.reading_level,
+        story_length: story.story_length,
+        chapter_length: story.chapter_length,
+        structural_prompt: story.structural_prompt,
+        conclude: true
+      });
+      if (!/the end/i.test(content.trim())) {
+        content = content.trim() + "\n\nThe End.";
+      }
+    } else {
+      content = await generateChapter(context, prompt, {
+        preferences: story.preferences,
+        reading_level: story.reading_level,
+        story_length: story.story_length,
+        chapter_length: story.chapter_length,
+        structural_prompt: story.structural_prompt
+      });
+    }
 
     // Insert new chapter
-    const chapter_number = chapters.length + 1;
     const { data: chapter, error: chapterError } = await supabase
       .from('chapters')
       .insert([{
