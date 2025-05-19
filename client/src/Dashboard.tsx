@@ -22,11 +22,14 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Slider,
+  InputAdornment
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 type Story = {
   id: string;
@@ -59,6 +62,21 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [addingChapter, setAddingChapter] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Story settings state (for new story)
+  const [readingLevel, setReadingLevel] = useState(3); // 1-10, default 3
+  const [storyLength, setStoryLength] = useState(10); // 1-50, default 10
+  const [chapterLength, setChapterLength] = useState(1000); // 100-5000, default 1000
+  const [structuralPrompt, setStructuralPrompt] = useState('');
+
+  // For mid-story settings dialog
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsReadingLevel, setSettingsReadingLevel] = useState(3);
+  const [settingsStoryLength, setSettingsStoryLength] = useState(10);
+  const [settingsChapterLength, setSettingsChapterLength] = useState(1000);
+  const [settingsStructuralPrompt, setSettingsStructuralPrompt] = useState('');
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -112,6 +130,17 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const handleCreateStory = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Validation
+    if (
+      readingLevel < 1 || readingLevel > 10 ||
+      storyLength < 1 || storyLength > 50 ||
+      chapterLength < 100 || chapterLength > 5000
+    ) {
+      setError('Please ensure all fields are within valid ranges.');
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -125,7 +154,12 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         body: JSON.stringify({
           title: newTitle,
           initial_prompt: initialPrompt,
-          preferences: {},
+          preferences: {
+            reading_level: readingLevel,
+            story_length: storyLength,
+            chapter_length: chapterLength,
+            structural_prompt: structuralPrompt,
+          },
         }),
       });
       const result = await res.json();
@@ -143,6 +177,10 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       setShowNewStory(false);
       setNewTitle('');
       setInitialPrompt('');
+      setReadingLevel(3);
+      setStoryLength(10);
+      setChapterLength(1000);
+      setStructuralPrompt('');
     } catch (err: any) {
       setError(err.message);
     }
@@ -268,6 +306,55 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             multiline
             rows={3}
           />
+          <Box mt={2}>
+            <Typography gutterBottom>Reading Level: {readingLevel === 1 ? "Kindergarten" : `${readingLevel + 4}th Grade`}</Typography>
+            <Slider
+              value={readingLevel}
+              min={1}
+              max={10}
+              step={1}
+              marks={[
+                { value: 1, label: "K" },
+                { value: 5, label: "5th" },
+                { value: 10, label: "10th" }
+              ]}
+              onChange={(_, v) => setReadingLevel(v as number)}
+              valueLabelDisplay="auto"
+            />
+          </Box>
+          <TextField
+            label="Story Length (Chapters)"
+            type="number"
+            value={storyLength}
+            onChange={e => setStoryLength(Number(e.target.value))}
+            inputProps={{ min: 1, max: 50 }}
+            fullWidth
+            margin="normal"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">chapters</InputAdornment>
+            }}
+          />
+          <TextField
+            label="Chapter Length (Words)"
+            type="number"
+            value={chapterLength}
+            onChange={e => setChapterLength(Number(e.target.value))}
+            inputProps={{ min: 100, max: 5000 }}
+            fullWidth
+            margin="normal"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">words</InputAdornment>
+            }}
+          />
+          <TextField
+            label="Structural Prompt (optional)"
+            value={structuralPrompt}
+            onChange={e => setStructuralPrompt(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
           {error && (
             <Typography color="error" mt={1}>
               {error}
@@ -302,21 +389,183 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   // Story view
   if (selectedStory) {
+    // Prepare settings state when opening settings dialog
+    const openSettingsDialog = () => {
+      const prefs = selectedStory.preferences || {};
+      setSettingsReadingLevel(prefs.reading_level ?? 3);
+      setSettingsStoryLength(prefs.story_length ?? 10);
+      setSettingsChapterLength(prefs.chapter_length ?? 1000);
+      setSettingsStructuralPrompt(prefs.structural_prompt ?? '');
+      setSettingsError(null);
+      setShowSettings(true);
+    };
+
+    // Handler for updating story settings
+    const handleUpdateSettings = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setSettingsError(null);
+
+      if (
+        settingsReadingLevel < 1 || settingsReadingLevel > 10 ||
+        settingsStoryLength < 1 || settingsStoryLength > 50 ||
+        settingsChapterLength < 100 || settingsChapterLength > 5000
+      ) {
+        setSettingsError('Please ensure all fields are within valid ranges.');
+        return;
+      }
+
+      setSettingsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+        const res = await fetch(`${EDGE_BASE}/update_story`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            story_id: selectedStory.id,
+            preferences: {
+              reading_level: settingsReadingLevel,
+              story_length: settingsStoryLength,
+              chapter_length: settingsChapterLength,
+              structural_prompt: settingsStructuralPrompt,
+            },
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to update settings');
+        // Update local state
+        setSelectedStory({
+          ...selectedStory,
+          preferences: {
+            reading_level: settingsReadingLevel,
+            story_length: settingsStoryLength,
+            chapter_length: settingsChapterLength,
+            structural_prompt: settingsStructuralPrompt,
+          }
+        });
+        setStories(stories.map(s =>
+          s.id === selectedStory.id
+            ? { ...s, preferences: {
+                reading_level: settingsReadingLevel,
+                story_length: settingsStoryLength,
+                chapter_length: settingsChapterLength,
+                structural_prompt: settingsStructuralPrompt,
+              } }
+            : s
+        ));
+        setShowSettings(false);
+      } catch (err: any) {
+        setSettingsError(err.message);
+      }
+      setSettingsLoading(false);
+    };
+
+    // Settings dialog for mid-story editing
+    const StorySettingsDialog = (
+      <Dialog open={showSettings} onClose={() => setShowSettings(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Story Settings</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={handleUpdateSettings} sx={{ mt: 1 }}>
+            <Box mt={2}>
+              <Typography gutterBottom>Reading Level: {settingsReadingLevel === 1 ? "Kindergarten" : `${settingsReadingLevel + 4}th Grade`}</Typography>
+              <Slider
+                value={settingsReadingLevel}
+                min={1}
+                max={10}
+                step={1}
+                marks={[
+                  { value: 1, label: "K" },
+                  { value: 5, label: "5th" },
+                  { value: 10, label: "10th" }
+                ]}
+                onChange={(_, v) => setSettingsReadingLevel(v as number)}
+                valueLabelDisplay="auto"
+              />
+            </Box>
+            <TextField
+              label="Story Length (Chapters)"
+              type="number"
+              value={settingsStoryLength}
+              onChange={e => setSettingsStoryLength(Number(e.target.value))}
+              inputProps={{ min: 1, max: 50 }}
+              fullWidth
+              margin="normal"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">chapters</InputAdornment>
+              }}
+            />
+            <TextField
+              label="Chapter Length (Words)"
+              type="number"
+              value={settingsChapterLength}
+              onChange={e => setSettingsChapterLength(Number(e.target.value))}
+              inputProps={{ min: 100, max: 5000 }}
+              fullWidth
+              margin="normal"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">words</InputAdornment>
+              }}
+            />
+            <TextField
+              label="Structural Prompt (optional)"
+              value={settingsStructuralPrompt}
+              onChange={e => setSettingsStructuralPrompt(e.target.value)}
+              fullWidth
+              margin="normal"
+              multiline
+              rows={2}
+            />
+            {settingsError && (
+              <Typography color="error" mt={1}>
+                {settingsError}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSettings(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdateSettings}
+            variant="contained"
+            color="primary"
+            disabled={settingsLoading}
+            endIcon={settingsLoading ? <CircularProgress size={18} color="inherit" /> : null}
+          >
+            Save Settings
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+
     return (
       <Box>
         {AppHeader}
         {isMobile && StoriesDrawer}
         <Container maxWidth="md" sx={{ mt: 4 }}>
           <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
-            <Button
-              onClick={() => setSelectedStory(null)}
-              sx={{ mb: 2 }}
-              startIcon={<MenuIcon />}
-              color="secondary"
-              variant="outlined"
-            >
-              Back to Stories
-            </Button>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Button
+                onClick={() => setSelectedStory(null)}
+                startIcon={<MenuIcon />}
+                color="secondary"
+                variant="outlined"
+              >
+                Back to Stories
+              </Button>
+              <Button
+                onClick={openSettingsDialog}
+                startIcon={<SettingsIcon />}
+                color="primary"
+                variant="contained"
+              >
+                Story Settings
+              </Button>
+            </Box>
             <Typography variant="h5" fontWeight={700} mb={2}>
               {selectedStory.title}
             </Typography>
@@ -416,6 +665,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           </Paper>
         </Container>
         {NewStoryDialog}
+        {StorySettingsDialog}
       </Box>
     );
   }

@@ -9,6 +9,16 @@ create table if not exists stories (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   preferences jsonb
+-- Migration: Add new fields to stories table (section 7.1 ARCHITECTURE_PLAN.md)
+alter table stories
+  add column if not exists reading_level integer,
+  add column if not exists story_length integer,
+  add column if not exists chapter_length integer,
+  add column if not exists structural_prompt text;
+
+-- Existing stories will have these fields as NULL by default.
+-- If you want to backfill with defaults, run an UPDATE statement as needed, e.g.:
+-- update stories set reading_level = 0 where reading_level is null;
 );
 
 -- Table: chapters

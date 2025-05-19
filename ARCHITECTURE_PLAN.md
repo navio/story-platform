@@ -82,3 +82,91 @@ flowchart TD
 5. Test and tweak responsiveness and spacing.
 
 ---
+
+## 7. Pre-Story Configuration & Story Parameter Architecture
+
+### Overview
+
+To enable fine-tuned, dynamic story generation, the platform will introduce a pre-story configuration interface and supporting backend changes. This allows users to set and update story-level parameters such as reading level, story/chapter length, and structural prompts, both before and during a story session.
+
+### 7.1 Data Model Changes
+
+**Stories Table (supabase/schema.sql):**
+- Add the following fields:
+  - `reading_level` (integer or enum): e.g., 1–10, representing grade level or mapped to age bands.
+  - `story_length` (integer): Target total story length (e.g., number of chapters or estimated word count).
+  - `chapter_length` (integer): Target length per chapter (e.g., number of words or paragraphs).
+  - `structural_prompt` (text, nullable): Optional structure or outline for the story.
+
+**Migration Notes:**
+- Existing stories should default new fields to null or reasonable defaults.
+- Update all story creation and update logic to handle these fields.
+
+### 7.2 Backend API Changes
+
+**Endpoints:**
+- Update story creation endpoint to accept new fields.
+- Update story update endpoint to allow modifying these fields mid-story.
+- Ensure endpoints validate and sanitize input (e.g., reading level range, positive lengths).
+
+**Story Fetching:**
+- Ensure all endpoints that return story data include the new fields.
+
+**Chapter Generation:**
+- When generating a chapter, always fetch the latest story parameters and pass them to the agent.
+
+### 7.3 Frontend UI/UX Changes
+
+**Pre-Story Configuration Interface:**
+- Add a modal or dedicated screen before story start with:
+  - Title input (existing)
+  - Initial prompt input (existing)
+  - Reading level slider (e.g., "Kindergarten" to "10th Grade")
+  - Story length control (slider or number input)
+  - Chapter length control (slider or number input)
+  - Structural prompt textarea (optional)
+
+**Mid-Story Configuration:**
+- Add a "Story Settings" button in the story view to re-open the configuration interface and update parameters.
+
+**State Management:**
+- Ensure story settings are stored in local state and synced with backend on submit/update.
+
+**Validation:**
+- UI should enforce valid ranges and provide user feedback.
+
+### 7.4 Agent Logic Changes
+
+- Update agent invocation logic to always read the latest story parameters before generating a chapter.
+- Pass all relevant parameters (reading level, story length, chapter length, structural prompt) to the agent prompt.
+- If parameters are updated mid-story, the next chapter generation should use the new values.
+
+### 7.5 Integration & Update Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI
+    participant Backend
+    participant Agent
+
+    User->>UI: Open new story or edit settings
+    UI->>Backend: POST/PUT story with config fields
+    Backend->>UI: Return updated story object
+    UI->>Agent: Request chapter, passing config fields
+    Agent->>Backend: (if needed) fetch latest story config
+    Agent->>UI: Return generated chapter
+    User->>UI: (Optionally) update settings mid-story
+    UI->>Backend: PUT story with new config
+    Backend->>UI: Return updated story
+    UI->>Agent: Next chapter uses updated config
+```
+
+### 7.6 Summary of Required Changes
+
+- **Database:** Add new fields to `stories` table, migrate existing data.
+- **Backend:** Update endpoints for story creation, update, and fetching; ensure chapter generation uses latest config.
+- **Frontend:** Implement pre-story and mid-story configuration UI; update state management and API calls.
+- **Agent:** Update logic to use all config parameters for chapter generation.
+
+---

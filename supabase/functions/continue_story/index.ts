@@ -69,14 +69,52 @@ serve(async (req) => {
     const user = await getUserFromJWT(jwt);
 
     const body = await req.json();
-    const { story_id, prompt } = body;
+    const {
+      story_id,
+      prompt,
+      reading_level,
+      story_length,
+      chapter_length,
+      structural_prompt
+    } = body;
     if (!story_id) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing story_id' }), { status: 400 }));
     }
 
+    // Validate and sanitize new fields if present
+    function isPositiveInt(val) {
+      return typeof val === "number" && Number.isInteger(val) && val > 0;
+    }
+    function isReadingLevel(val) {
+      return typeof val === "number" && val >= 0 && val <= 12;
+    }
+    if (
+      (reading_level !== undefined && !isReadingLevel(reading_level)) ||
+      (story_length !== undefined && !isPositiveInt(story_length)) ||
+      (chapter_length !== undefined && !isPositiveInt(chapter_length)) ||
+      (structural_prompt !== undefined && typeof structural_prompt !== "string")
+    ) {
+      return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Load story and chapters
+    // If any new fields are present, update the story
+    const updateFields: Record<string, any> = {};
+    if (reading_level !== undefined) updateFields.reading_level = reading_level;
+    if (story_length !== undefined) updateFields.story_length = story_length;
+    if (chapter_length !== undefined) updateFields.chapter_length = chapter_length;
+    if (structural_prompt !== undefined) updateFields.structural_prompt = structural_prompt;
+    if (Object.keys(updateFields).length > 0) {
+      updateFields.updated_at = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('stories')
+        .update(updateFields)
+        .eq('id', story_id);
+      if (updateError) throw new Error(updateError.message);
+    }
+
+    // Load story and chapters (after possible update)
     const { data: story, error: storyError } = await supabase
       .from('stories')
       .select('*')
@@ -95,8 +133,14 @@ serve(async (req) => {
     // Build context from previous chapters
     const context = chapters.map((ch: any) => ch.content).join('\n\n');
 
-    // Generate next chapter
-    const content = await generateChapter(context, prompt, story.preferences);
+    // Generate next chapter using latest story parameters
+    const content = await generateChapter(context, prompt, {
+      preferences: story.preferences,
+      reading_level: story.reading_level,
+      story_length: story.story_length,
+      chapter_length: story.chapter_length,
+      structural_prompt: story.structural_prompt
+    });
 
     // Insert new chapter
     const chapter_number = chapters.length + 1;
@@ -119,6 +163,19 @@ serve(async (req) => {
       .eq('id', story_id);
 
     return withCORSHeaders(new Response(JSON.stringify({
+      story: {
+        id: story.id,
+        user_id: story.user_id,
+        title: story.title,
+        preferences: story.preferences,
+        reading_level: story.reading_level,
+        story_length: story.story_length,
+        chapter_length: story.chapter_length,
+        structural_prompt: story.structural_prompt,
+        status: story.status,
+        created_at: story.created_at,
+        updated_at: story.updated_at
+      },
       chapter: {
         id: chapter.id,
         chapter_number: chapter.chapter_number,

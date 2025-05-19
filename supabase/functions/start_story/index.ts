@@ -70,9 +70,34 @@ serve(async (req) => {
     const user = await getUserFromJWT(jwt);
 
     const body = await req.json();
-    const { title, initial_prompt, preferences } = body;
+    const {
+      title,
+      initial_prompt,
+      preferences,
+      reading_level,
+      story_length,
+      chapter_length,
+      structural_prompt
+    } = body;
+
     if (!title || !initial_prompt) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing title or initial_prompt' }), { status: 400 }));
+    }
+
+    // Validate and sanitize new fields
+    function isPositiveInt(val) {
+      return typeof val === "number" && Number.isInteger(val) && val > 0;
+    }
+    function isReadingLevel(val) {
+      return typeof val === "number" && val >= 0 && val <= 12;
+    }
+    if (
+      (reading_level !== undefined && !isReadingLevel(reading_level)) ||
+      (story_length !== undefined && !isPositiveInt(story_length)) ||
+      (chapter_length !== undefined && !isPositiveInt(chapter_length)) ||
+      (structural_prompt !== undefined && typeof structural_prompt !== "string")
+    ) {
+      return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
     }
 
     // Create Supabase client for DB ops
@@ -81,7 +106,15 @@ serve(async (req) => {
     // Insert new story
     const { data: story, error: storyError } = await supabase
       .from('stories')
-      .insert([{ user_id: user.id, title, preferences }])
+      .insert([{
+        user_id: user.id,
+        title,
+        preferences,
+        reading_level,
+        story_length,
+        chapter_length,
+        structural_prompt
+      }])
       .select()
       .single();
     if (storyError) throw new Error(storyError.message);
@@ -103,7 +136,19 @@ serve(async (req) => {
     if (chapterError) throw new Error(chapterError.message);
 
     return withCORSHeaders(new Response(JSON.stringify({
-      story_id: story.id,
+      story: {
+        id: story.id,
+        user_id: story.user_id,
+        title: story.title,
+        preferences: story.preferences,
+        reading_level: story.reading_level,
+        story_length: story.story_length,
+        chapter_length: story.chapter_length,
+        structural_prompt: story.structural_prompt,
+        status: story.status,
+        created_at: story.created_at,
+        updated_at: story.updated_at
+      },
       chapter: {
         id: chapter.id,
         chapter_number: chapter.chapter_number,
