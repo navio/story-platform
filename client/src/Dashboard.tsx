@@ -427,7 +427,7 @@ if (selectedStory) {
     <Box>
       {AppHeader}
       <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4, md: 12 }, borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Button
               onClick={() => setSelectedStory(null)}
@@ -710,8 +710,8 @@ return (
             p: { xs: 2, sm: 3 },
             borderRadius: 3,
             minWidth: isMobile ? '100vw' : 350,
-            maxWidth: isMobile ? '100vw' : 400,
-            width: isMobile ? '100vw' : '100%',
+            maxWidth: '100vw',
+            width: '100%',
             flex: '0 0 auto',
             mb: isMobile ? 3 : 0,
             boxSizing: 'border-box',
