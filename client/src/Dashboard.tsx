@@ -38,7 +38,10 @@ type Story = {
   created_at: string;
   updated_at: string;
   preferences?: any;
-  story_length?: string | number;
+  story_length?: number;
+  reading_level?: number;
+  chapter_length?: string;
+  structural_prompt?: string;
 };
 
 type Chapter = {
@@ -70,6 +73,14 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [chapterLength, setChapterLength] = useState("A full paragraph"); // qualitative, default "A full paragraph"
   const [structuralPrompt, setStructuralPrompt] = useState('');
 
+// For story settings modal in story mode
+const [showStorySettings, setShowStorySettings] = useState(false);
+const [editReadingLevel, setEditReadingLevel] = useState<number>(selectedStory?.reading_level ?? 3);
+const [editStoryLength, setEditStoryLength] = useState<number>(typeof selectedStory?.story_length === "number" ? selectedStory.story_length : 10);
+const [editChapterLength, setEditChapterLength] = useState<string>(selectedStory?.chapter_length ?? "A full paragraph");
+const [editStructuralPrompt, setEditStructuralPrompt] = useState<string>(selectedStory?.structural_prompt ?? "");
+const [editSettingsError, setEditSettingsError] = useState<string | null>(null);
+const [editSettingsLoading, setEditSettingsLoading] = useState(false);
   // For mid-story settings dialog
   // Removed unused showSettings, setShowSettings, settingsReadingLevel, setSettingsReadingLevel
 
@@ -426,6 +437,14 @@ if (selectedStory) {
             >
               Back to Stories
             </Button>
+            <Button
+              onClick={() => setShowStorySettings(true)}
+              startIcon={<SettingsIcon />}
+              color="primary"
+              variant="contained"
+            >
+              Story Settings
+            </Button>
           </Box>
           <Typography variant="h5" fontWeight={700} mb={2}>
             {selectedStory?.title}
@@ -451,58 +470,62 @@ if (selectedStory) {
             ))}
           </Box>
           <Box display="flex" gap={2} mt={3}>
-            <Button
-              variant="contained"
-              color="info"
-              sx={{
-                py: 1.5,
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                minWidth: 160,
-                boxShadow: 3,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-              }}
-              disabled={Boolean(addingChapter || (selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)))}
-              onClick={async () => {
-                if (!selectedStory) return;
-                setAddingChapter(true);
-                setError(null);
-                try {
-                  const { data: { session } } = await supabase.auth.getSession();
-                  if (!session) throw new Error('Not authenticated');
-                  const res = await fetch(`${EDGE_BASE}/continue_story`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({
-                      story_id: selectedStory.id,
-                      prompt: "",
-                    }),
-                  });
-                  const result = await res.json();
-                  if (!res.ok) throw new Error(result.error || 'Failed to add chapter');
-                  setChapters([...chapters, result.chapter]);
-                } catch (err: any) {
-                  setError(err.message);
-                }
-                setAddingChapter(false);
-              }}
-            >
-              Continue
-            </Button>
-            <Box component="form" onSubmit={handleAddChapter} flex={1}>
-              <TextField
-                value={newPrompt}
-                onChange={e => setNewPrompt(e.target.value)}
-                placeholder="Write the next part or prompt the agent..."
-                label="Next prompt"
-                fullWidth
-                disabled={Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))}
-              />
-            </Box>
+            {!(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)) && (
+              <>
+                <Button
+                  variant="contained"
+                  color="info"
+                  sx={{
+                    py: 1.5,
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    minWidth: 160,
+                    boxShadow: 3,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                  }}
+                  disabled={Boolean(addingChapter)}
+                  onClick={async () => {
+                    if (!selectedStory) return;
+                    setAddingChapter(true);
+                    setError(null);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session) throw new Error('Not authenticated');
+                      const res = await fetch(`${EDGE_BASE}/continue_story`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${session.access_token}`,
+                        },
+                        body: JSON.stringify({
+                          story_id: selectedStory.id,
+                          prompt: "",
+                        }),
+                      });
+                      const result = await res.json();
+                      if (!res.ok) throw new Error(result.error || 'Failed to add chapter');
+                      setChapters([...chapters, result.chapter]);
+                    } catch (err: any) {
+                      setError(err.message);
+                    }
+                    setAddingChapter(false);
+                  }}
+                >
+                  Continue
+                </Button>
+                <Box component="form" onSubmit={handleAddChapter} flex={1}>
+                  <TextField
+                    value={newPrompt}
+                    onChange={e => setNewPrompt(e.target.value)}
+                    placeholder="Write the next part or prompt the agent..."
+                    label="Next prompt"
+                    fullWidth
+                    disabled={Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))}
+                  />
+                </Box>
+              </>
+            )}
             {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) && (
               <Typography variant="h5" color="success.main" fontWeight={700} mt={4} textAlign="center">
                 The End
@@ -516,6 +539,132 @@ if (selectedStory) {
           )}
         </Paper>
       </Container>
+      {/* Story Settings Modal */}
+      <Dialog open={showStorySettings} onClose={() => setShowStorySettings(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Edit Story Settings</DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ mt: 1 }}>
+            <Box mt={2}>
+              <Typography gutterBottom>Reading Level: {editReadingLevel === 1 ? "Kindergarten" : `${editReadingLevel + 4}th Grade`}</Typography>
+              <Slider
+                value={editReadingLevel}
+                min={1}
+                max={10}
+                step={1}
+                marks={[
+                  { value: 1, label: "K" },
+                  { value: 5, label: "5th" },
+                  { value: 10, label: "10th" }
+                ]}
+                onChange={(_, v) => setEditReadingLevel(v as number)}
+                valueLabelDisplay="auto"
+              />
+            </Box>
+            <TextField
+              label="Story Length (Chapters)"
+              type="number"
+              value={editStoryLength}
+              onChange={e => setEditStoryLength(Number(e.target.value))}
+              inputProps={{ min: 1, max: 50 }}
+              fullWidth
+              margin="normal"
+            />
+            <TextField
+              select
+              label="Chapter Length"
+              value={editChapterLength}
+              onChange={e => setEditChapterLength(e.target.value)}
+              fullWidth
+              margin="normal"
+              SelectProps={{ native: true }}
+            >
+              <option value="A sentence">A sentence</option>
+              <option value="A few sentences">A few sentences</option>
+              <option value="A small paragraph">A small paragraph</option>
+              <option value="A full paragraph">A full paragraph</option>
+              <option value="A few paragraphs">A few paragraphs</option>
+            </TextField>
+            <TextField
+              label="Structural Prompt (optional)"
+              value={editStructuralPrompt}
+              onChange={e => setEditStructuralPrompt(e.target.value)}
+              fullWidth
+              margin="normal"
+              multiline
+              rows={2}
+            />
+            {editSettingsError && (
+              <Typography color="error" mt={1}>
+                {editSettingsError}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowStorySettings(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              setEditSettingsError(null);
+              if (
+                editReadingLevel < 1 || editReadingLevel > 10 ||
+                Number(editStoryLength) < 1 || Number(editStoryLength) > 50 ||
+                ![
+                  "A sentence",
+                  "A few sentences",
+                  "A small paragraph",
+                  "A full paragraph",
+                  "A few paragraphs"
+                ].includes(editChapterLength)
+              ) {
+                setEditSettingsError('Please ensure all fields are within valid ranges.');
+                return;
+              }
+              setEditSettingsLoading(true);
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('Not authenticated');
+                const res = await fetch(`${EDGE_BASE}/update_story`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    story_id: selectedStory.id,
+                    reading_level: editReadingLevel,
+                    story_length: editStoryLength,
+                    chapter_length: editChapterLength,
+                    structural_prompt: editStructuralPrompt,
+                  }),
+                });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to update settings');
+                setSelectedStory({
+                  ...selectedStory,
+                  ...selectedStory,
+                  reading_level: editReadingLevel,
+                  story_length: editStoryLength,
+                  chapter_length: editChapterLength,
+                  structural_prompt: editStructuralPrompt,
+                });
+                setShowStorySettings(false);
+              } catch (err: any) {
+                setEditSettingsError(err.message);
+              }
+              setEditSettingsLoading(false);
+            }}
+            variant="contained"
+            color="primary"
+            disabled={editSettingsLoading}
+            endIcon={editSettingsLoading ? <CircularProgress size={18} color="inherit" /> : null}
+          >
+            Save Settings
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* End Story Settings Modal */}
     </Box>
   );
 }

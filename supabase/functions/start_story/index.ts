@@ -25,6 +25,11 @@ async function generateChapter(prompt: string, preferences: any) {
         content: `You are a creative story-telling assistant. Write a captivating first chapter for a story based on the user's prompt.
 The user has requested the following chapter length: "${preferences?.chapter_length || "A full paragraph"}".
 Please ensure your response matches this length: ${preferences?.chapter_length || "A full paragraph"}.
+
+IMPORTANT: The story must be engaging, terse, and always build toward a meaningful story arc and conclusion, regardless of reading level.
+The story should be planned to fit exactly ${preferences?.story_length || "the specified number of"} chapters, with each chapter advancing the plot and character development.
+Every chapter should be interesting and relevant, and the story must have a clear beginning, middle, and end.
+Consider the total number of chapters and ensure the arc is satisfying and the ending is conclusive.
 If the user has also provided a structural prompt, follow it as well.`
       },
       { role: "user", content: prompt }
