@@ -1,35 +1,147 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+
+/**
+ * Interfaces and Types
+ */
+
+interface Preferences {
+  structural_prompt?: string;
+  chapter_length?: "A sentence" | "A few sentences" | "A small paragraph" | "A full paragraph" | "A few paragraphs";
+  story_length?: number;
+  [key: string]: any; // Allow additional fields for flexibility
+}
+
+interface Story {
+  id: string;
+  user_id: string;
+  title: string;
+  preferences?: Preferences;
+  reading_level?: number;
+  story_length?: number;
+  chapter_length?: Preferences["chapter_length"];
+  structural_prompt?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Chapter {
+  id: string;
+  story_id: string;
+  chapter_number: number;
+  content: string;
+  prompt?: string;
+  created_at?: string;
+}
+
+interface User {
+  id: string;
+  [key: string]: any;
+}
+
+interface RequestBody {
+  story_id: string;
+  prompt?: string;
+  reading_level?: number;
+  story_length?: number;
+  chapter_length?: Preferences["chapter_length"];
+  structural_prompt?: string;
+}
+
+/**
+ * Helper validation functions (moved to top-level for global access)
+ */
+function isPositiveInt(val: unknown): val is number {
+  return typeof val === "number" && Number.isInteger(val) && val > 0;
+}
+function isReadingLevel(val: unknown): val is number {
+  return typeof val === "number" && val >= 0 && val <= 12;
+}
+function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
+  return (
+    typeof val === "string" &&
+    [
+      "A sentence",
+      "A few sentences",
+      "A small paragraph",
+      "A full paragraph",
+      "A few paragraphs"
+    ].includes(val)
+  );
+}
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-async function getUserFromJWT(jwt: string) {
+async function getUserFromJWT(jwt: string): Promise<User> {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
   const { data, error } = await supabase.auth.getUser(jwt);
   if (error || !data.user) throw new Error('Unauthorized');
-  return data.user;
+  return data.user as User;
 }
 
 // Placeholder for agent call (replace with real agent integration)
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-async function generateChapter(context: string, prompt: string, preferences: any) {
+async function generateChapter(
+  context: string,
+  prompt: string | undefined,
+  preferences: Preferences
+): Promise<string> {
   const userPrompt = prompt ? `Continue the story with this user input: "${prompt}"` : "Continue the story in an interesting way.";
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
       {
         role: "system",
-        content: `You are a creative story-telling assistant. Continue the story based on the previous chapters and user input.
-The user has requested the following chapter length: "${preferences?.chapter_length || "A full paragraph"}".
-Please ensure your response matches this length: ${preferences?.chapter_length || "A full paragraph"}.
+        content: `${preferences?.structural_prompt}
 
-IMPORTANT: The story must be engaging, terse, and always build toward a meaningful story arc and conclusion, regardless of reading level.
-The story should be planned to fit exactly ${preferences?.story_length || "the specified number of"} chapters, with each chapter advancing the plot and character development.
-Every chapter should be interesting and relevant, and the story must have a clear beginning, middle, and end.
-Consider the total number of chapters and the current chapter, and ensure the arc is satisfying and the ending is conclusive.
-If the user has also provided a structural prompt, follow it as well.`
+# ADAPTIVE STORY CONTINUATION SYSTEM
+
+You are an expert narrative developer specializing in crafting compelling story continuations. Your task is to advance an existing story while maintaining narrative cohesion, character consistency, and progression toward a satisfying conclusion.
+
+## CONTINUATION FRAMEWORK
+
+### NARRATIVE PROGRESSION
+- Continue the story with precise awareness of where this chapter falls in the overall arc (beginning, middle, or end)
+- If approaching the middle: Deepen conflicts, increase stakes, or introduce complications
+- If approaching the end: Begin resolving plot threads while maintaining tension
+- If this is the final chapter: Provide a satisfying resolution to the main conflicts while honoring character arcs
+- Maintain exactly ${preferences?.story_length || "the specified number of"} total chapters in your planning
+
+### CHAPTER CONSTRUCTION
+- Create a chapter precisely ${preferences?.chapter_length || "A full paragraph"} in length
+- Begin with a subtle connection to previous events without extensive recapping
+- End with a compelling development that maintains momentum and reader engagement
+- Every element must serve the dual purpose of advancing the plot and developing characters
+
+### STORY COHESION
+- Maintain consistent characterization, settings, and plot elements from previous chapters
+- Reference earlier events, decisions, and character moments to create narrative unity
+- Develop (don't abandon) established conflicts, relationships, and themes
+- Ensure any new elements introduced serve the overall story and don't distract from the main arc
+
+### CHARACTER CONTINUITY
+- Demonstrate character growth resulting from previous events
+- Show how characters are changed by their experiences, not just responding to new situations
+- Deepen relationships established in earlier chapters
+- Allow character decisions to naturally flow from established motivations and growth
+
+### READING LEVEL MAINTENANCE
+- Sustain the established reading level while continuing to challenge and engage the reader
+- Maintain vocabulary consistency while strategically introducing new terms appropriate to level
+- Keep sentence and paragraph complexity aligned with the reading skill target
+- Ensure thematic elements remain developmentally appropriate while remaining meaningful
+
+## PACING CONSIDERATIONS
+- If early chapters (first third): Continue developing the foundation while introducing meaningful complications
+- If middle chapters (middle third): Intensify conflicts, deepen relationships, raise stakes
+- If later chapters (final third): Begin resolution while maintaining tension until the final chapter
+- If final chapter: Provide closure to all major plot threads and character arcs
+
+Remember: Each chapter must feel like a natural and necessary continuation of what came before while still advancing toward a conclusive ending. Avoid stalling tactics or filler content. Every word should serve the story's progression toward its planned conclusion.`
       },
       { role: "user", content: `Story so far:\n${context}\n\n${userPrompt}` }
     ],
@@ -53,7 +165,7 @@ If the user has also provided a structural prompt, follow it as well.`
   return data.choices[0].message.content.trim();
 }
 
-function withCORSHeaders(resp: Response) {
+function withCORSHeaders(resp: Response): Response {
   const headers = new Headers(resp.headers);
   headers.set("Access-Control-Allow-Origin", "*");
   headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -61,7 +173,7 @@ function withCORSHeaders(resp: Response) {
   return new Response(resp.body, { ...resp, headers });
 }
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return withCORSHeaders(new Response(null, { status: 204 }));
@@ -79,7 +191,7 @@ serve(async (req) => {
     const jwt = authHeader.replace('Bearer ', '').trim();
     const user = await getUserFromJWT(jwt);
 
-    const body = await req.json();
+    const body: RequestBody = await req.json();
     const {
       story_id,
       prompt,
@@ -92,25 +204,6 @@ serve(async (req) => {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing story_id' }), { status: 400 }));
     }
 
-    // Validate and sanitize new fields if present
-    function isPositiveInt(val) {
-      return typeof val === "number" && Number.isInteger(val) && val > 0;
-    }
-    function isReadingLevel(val) {
-      return typeof val === "number" && val >= 0 && val <= 12;
-    }
-    function isChapterLength(val) {
-      return (
-        typeof val === "string" &&
-        [
-          "A sentence",
-          "A few sentences",
-          "A small paragraph",
-          "A full paragraph",
-          "A few paragraphs"
-        ].includes(val)
-      );
-    }
     if (
       (reading_level !== undefined && !isReadingLevel(reading_level)) ||
       (story_length !== undefined && !isPositiveInt(story_length)) ||
@@ -157,7 +250,7 @@ serve(async (req) => {
     const context = chapters.map((ch: any) => ch.content).join('\n\n');
 
     // Generate next chapter using latest story parameters
-    let content;
+    let content: string;
     const chapter_number = chapters.length + 1;
     const isFinalChapter = story.story_length && chapter_number >= Number(story.story_length);
     if (isFinalChapter) {
