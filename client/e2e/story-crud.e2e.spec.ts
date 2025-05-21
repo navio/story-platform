@@ -12,6 +12,9 @@ test.describe('Story CRUD Flows', () => {
     await page.getByRole('button', { name: /new story|add story/i }).click();
     await page.getByLabel(/title/i).fill('E2E Test Story');
     await page.getByRole('button', { name: /create|save/i }).click();
+    // Validate that the user is navigated to the new story's view
+    await expect(page.getByRole('heading', { name: /e2e test story/i })).toBeVisible();
+    // Optionally, also check the story title is visible (redundant, but keeps original intent)
     await expect(page.getByText('E2E Test Story')).toBeVisible();
   });
 

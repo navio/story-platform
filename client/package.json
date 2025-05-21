@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest",
     "dev": "vite",
+    "dev:remote": "vite --mode remote",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",

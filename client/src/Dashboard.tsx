@@ -284,7 +284,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       onCreate={async (e) => {
         e.preventDefault();
         try {
-          await createStory({
+          const newStory = await createStory({
             title: newTitle,
             initialPrompt,
             readingLevel,
@@ -292,6 +292,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             chapterLength,
             structuralPrompt,
           });
+          setSelectedStory(newStory); // Navigate to the new story
           setShowNewStory(false);
           setNewTitle('');
           setInitialPrompt('');
@@ -299,8 +300,10 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           setStoryLength(10);
           setChapterLength("A full paragraph");
           setStructuralPrompt('');
-        } catch {
-          // error is handled by hook
+        } catch (err) {
+          // Log error for debugging and keep dialog open so error is visible
+          // eslint-disable-next-line no-console
+          console.error('Error creating story:', err);
         }
       }}
     />
