@@ -4,13 +4,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "vitest",
     "dev": "vite",
-    "dev:remote": "VITE_EDGE_BASE=https://xzngetmbbuoxjucudiyo.functions.supabase.co vite",
-    "dev:local": "VITE_EDGE_BASE=http://localhost:54321/functions/v1 vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "start": "vite",
+    "build": "vite build",
     "preview": "vite preview",
-    "deploy": "netlify deploy --prod --dir=dist"
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "e2e": "playwright test",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "deploy": "netlify deploy --prod --dir=dist",
+    "test:playwright": "playwright test",
+    "playwright:codegen": "playwright codegen",
+    "playwright:install": "playwright install",
+    "playwright:report": "playwright show-report"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -20,20 +28,26 @@
     "@mui/material": "^7.1.0",
     "@supabase/supabase-js": "^2.49.4",
     "prop-types": "^15.8.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
+    "@playwright/test": "^1.52.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/ui": "^1.6.0",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^1.6.0"
   }
 }
