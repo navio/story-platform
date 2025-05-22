@@ -1,7 +1,3 @@
-export type Chapter = {
-  id: string;
-  chapter_number: number;
-  content: string;
-  created_at: string;
-  prompt?: string;
-};
+// Existing Chapter type definition is removed.
+// Re-exporting Chapter from the shared location.
+export * from '../../../shared/types/Chapter';

@@ -1,41 +1,12 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { Story, Chapter, Preferences } from '../../../shared/types/index.ts';
 
 /**
-* Interfaces and Types
+* Local Interfaces and Types
 */
 
-interface Preferences {
-  structural_prompt?: string;
-  chapter_length?: "A sentence" | "A few sentences" | "A small paragraph" | "A full paragraph" | "A few paragraphs";
-  story_length?: number;
-  [key: string]: any; // Allow additional fields for flexibility
-}
-
-interface Story {
-  id: string;
-  user_id: string;
-  title: string;
-  preferences?: Preferences;
-  reading_level?: number;
-  story_length?: number;
-  chapter_length?: Preferences["chapter_length"];
-  structural_prompt?: string;
-  status?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Chapter {
-  id: string;
-  story_id: string;
-  chapter_number: number;
-  content: string;
-  prompt?: string;
-  created_at?: string;
-}
-
+// User interface remains local as it's not part of shared types yet
 interface User {
   id: string;
   [key: string]: any;
@@ -44,11 +15,19 @@ interface User {
 interface RequestBody {
   title: string;
   initial_prompt: string;
-  preferences?: Preferences;
+  preferences?: Preferences; // Uses imported Preferences
   reading_level?: number;
   story_length?: number;
-  chapter_length?: Preferences["chapter_length"];
+  chapter_length?: number;
   structural_prompt?: string;
+}
+
+// Specific parameters needed for chapter generation by OpenAI
+interface ChapterGenerationParams {
+  structural_prompt?: string;
+  chapter_length?: number;
+  story_length?: number;
+  reading_level?: number; // Not in shared Preferences, but needed for prompt
 }
 
 /**
@@ -60,17 +39,21 @@ function isPositiveInt(val: unknown): val is number {
 function isReadingLevel(val: unknown): val is number {
   return typeof val === "number" && val >= 0 && val <= 12;
 }
-function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
-  return (
-    typeof val === "string" &&
-    [
-      "A sentence",
-      "A few sentences",
-      "A small paragraph",
-      "A full paragraph",
-      "A few paragraphs"
-    ].includes(val)
-  );
+// function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
+//   return (
+//     typeof val === "string" &&
+//     [
+//       "A sentence",
+//       "A few sentences",
+//       "A small paragraph",
+//       "A full paragraph",
+//       "A few paragraphs"
+//     ].includes(val)
+//   );
+// }
+
+function isValidChapterLength(val: unknown): val is number {
+  return typeof val === "number" && Number.isInteger(val) && val > 0 && val <= 5; // Assuming 5 is a reasonable upper limit
 }
 
 // Environment variables for service role key and project URL
@@ -88,14 +71,14 @@ async function getUserFromJWT(jwt: string): Promise<User> {
 // Placeholder for agent call (replace with real agent integration)
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-async function generateChapter(prompt: string, preferences: Preferences): Promise<string> {
-  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+async function generateChapter(prompt: string, generationParams: ChapterGenerationParams): Promise<string> {
+  const readinglevel = generationParams?.reading_level !== 0 ? `${generationParams?.reading_level} Grade` :'Kindergarden';
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
       {
         role: "system",
-        content: `${preferences?.structural_prompt}
+        content: `${generationParams?.structural_prompt || ''}
 
 # ADAPTIVE STORYTELLING SYSTEM
 
@@ -106,13 +89,13 @@ You are an expert narrative creator specializing in episodic storytelling tailor
 Story reading level: ${readinglevel}
 
 ### STORY STRUCTURE & PLANNING
-- Create a compelling narrative that spans exactly ${preferences?.story_length || "the specified number of"} chapters
+- Create a compelling narrative that spans exactly ${generationParams?.story_length || "the specified number of"} chapters
 - Plan the full story arc before writing, ensuring meaningful progression through beginning, middle, and end
 - Each chapter must advance both the plot and character development in significant ways
 - Maintain consistent pacing appropriate to the story length - if planning 5 chapters, position the climax appropriately
 
 ### CHAPTER DEVELOPMENT
-- Each chapter must be precisely ${preferences?.chapter_length || "A full paragraph"} in length
+- Each chapter must be precisely ${generationParams?.chapter_length || "A full paragraph"} in length
 - Every word should serve a purpose - avoid filler content that doesn't advance the story
 - Begin chapters with brief but natural connections to previous events (after chapter 1)
 - End chapters with meaningful developments that drive reader interest
@@ -198,11 +181,11 @@ serve(async (req: Request): Promise<Response> => {
     const {
       title,
       initial_prompt,
-      preferences = {},
-      reading_level,
-      story_length,
-      chapter_length,
-      structural_prompt
+      preferences = {} as Preferences, // body.preferences is of imported Preferences type
+      reading_level, // root level reading_level
+      story_length, // root level story_length
+      chapter_length, // root level chapter_length
+      structural_prompt // root level structural_prompt
     } = body;
 
     if (!title || !initial_prompt) {
@@ -212,7 +195,7 @@ serve(async (req: Request): Promise<Response> => {
     if (
       (reading_level !== undefined && !isReadingLevel(reading_level)) ||
       (story_length !== undefined && !isPositiveInt(story_length)) ||
-      (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
+      (chapter_length !== undefined && !isValidChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
@@ -221,60 +204,75 @@ serve(async (req: Request): Promise<Response> => {
     // Create Supabase client for DB ops
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Insert new story
-    const { data: story, error: storyError } = await supabase
-      .from('stories')
-      .insert([{
+    // Create Supabase client for DB ops
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Prepare data for story insertion
+    // The 'preferences' field in DB stores body.preferences
+    // Root-level fields from request body are stored as direct columns in the story
+    const storyToInsert: Partial<Story> = { // Use Partial<Story> for type safety
         user_id: user.id,
         title,
-        preferences,
-        reading_level,
-        story_length,
-        chapter_length,
-        structural_prompt
-      }])
+        preferences, // This is body.preferences, typed as imported Preferences
+        reading_level, // from body.reading_level
+        story_length, // from body.story_length
+        chapter_length, // from body.chapter_length
+        structural_prompt, // from body.structural_prompt
+    };
+
+    // Insert new story
+    const { data: storyResult, error: storyError } = await supabase
+      .from('stories')
+      .insert([storyToInsert])
       .select()
       .single();
-    if (storyError) throw new Error(storyError.message);
+
+    if (storyError) throw new Error(`Story insertion error: ${storyError.message}`);
+    if (!storyResult) throw new Error('Failed to create story: No data returned.');
+
+    const newStory = storyResult as Story; // Cast to imported Story type
+
+    // Prepare parameters for chapter generation
+    // Use values from request body, falling back to preferences if not set at root
+    const generationParams: ChapterGenerationParams = {
+      structural_prompt: structural_prompt || preferences.structural_prompt,
+      chapter_length: chapter_length || preferences.chapter_length,
+      story_length: story_length || preferences.story_length,
+      reading_level: reading_level, // reading_level is not in shared Preferences
+    };
 
     // Generate first chapter
-    const content = await generateChapter(initial_prompt, preferences);
+    const content = await generateChapter(initial_prompt, generationParams);
 
     // Insert first chapter
-    const { data: chapter, error: chapterError } = await supabase
-      .from('chapters')
-      .insert([{
-        story_id: story.id,
+    const chapterToInsert: Partial<Chapter> = { // Use Partial<Chapter>
+        story_id: newStory.id,
         chapter_number: 1,
         content,
-        prompt: initial_prompt
-      }])
+        prompt: initial_prompt,
+    };
+    const { data: chapterResult, error: chapterError } = await supabase
+      .from('chapters')
+      .insert([chapterToInsert])
       .select()
       .single();
-    if (chapterError) throw new Error(chapterError.message);
+
+    if (chapterError) throw new Error(`Chapter insertion error: ${chapterError.message}`);
+    if (!chapterResult) throw new Error('Failed to create chapter: No data returned.');
+    
+    const newChapter = chapterResult as Chapter; // Cast to imported Chapter type
 
     return withCORSHeaders(new Response(JSON.stringify({
-      story: {
-        id: story.id,
-        user_id: story.user_id,
-        title: story.title,
-        preferences: story.preferences,
-        reading_level: story.reading_level,
-        story_length: story.story_length,
-        chapter_length: story.chapter_length,
-        structural_prompt: story.structural_prompt,
-        status: story.status,
-        created_at: story.created_at,
-        updated_at: story.updated_at
-      },
-      chapter: {
-        id: chapter.id,
-        chapter_number: chapter.chapter_number,
-        content: chapter.content,
-        created_at: chapter.created_at
+      story: newStory, // Return the full story object typed as imported Story
+      chapter: { // Return relevant chapter details
+        id: newChapter.id,
+        chapter_number: newChapter.chapter_number,
+        content: newChapter.content,
+        created_at: newChapter.created_at
       }
     }), { status: 201 }));
   } catch (err: any) {
+    console.error("Error in start_story:", err);
     return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
   }
 });

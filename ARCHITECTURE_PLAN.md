@@ -96,6 +96,7 @@ To enable fine-tuned, dynamic story generation, the platform will introduce a pr
   - `reading_level` (integer or enum): e.g., 1–10, representing grade level or mapped to age bands.
   - `story_length` (integer): Target total story length (e.g., number of chapters or estimated word count).
   - `chapter_length` (integer): Target length per chapter (e.g., number of words or paragraphs).
+    *Note: Backend services (`start_story`, `continue_story`) now strictly adhere to this integer type for `chapter_length`, aligning the implementation with this schema definition and resolving previous discrepancies.*
   - `structural_prompt` (text, nullable): Optional structure or outline for the story.
 
 **Migration Notes:**
@@ -170,3 +171,14 @@ sequenceDiagram
 - **Agent:** Update logic to use all config parameters for chapter generation.
 
 ---
+
+## 8. Shared Type Definitions
+
+To ensure consistency in data structures between the client-side application and the backend Supabase functions, a dedicated shared types directory has been established at `shared/types/`.
+
+This directory contains canonical TypeScript type definitions for core entities, including:
+- `Story.ts`: Defines the structure of a story object, including its preferences and other metadata.
+- `Chapter.ts`: Defines the structure of a chapter object.
+- `Preferences.ts`: Defines the structure for user-configurable story preferences like structural prompts and target lengths.
+
+By utilizing these shared types, both frontend and backend development can rely on a single source of truth for data models. This approach minimizes integration errors, reduces signature mismatches between client and server, and improves overall code maintainability and type safety. All new and refactored components and functions are expected to use these shared types where applicable.

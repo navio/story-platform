@@ -1,41 +1,12 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { Story, Chapter, Preferences } from '../../../shared/types/index.ts';
 
 /**
- * Interfaces and Types
+ * Local Interfaces and Types
  */
 
-interface Preferences {
-  structural_prompt?: string;
-  chapter_length?: "A sentence" | "A few sentences" | "A small paragraph" | "A full paragraph" | "A few paragraphs";
-  story_length?: number;
-  [key: string]: any; // Allow additional fields for flexibility
-}
-
-interface Story {
-  id: string;
-  user_id: string;
-  title: string;
-  preferences?: Preferences;
-  reading_level?: number;
-  story_length?: number;
-  chapter_length?: Preferences["chapter_length"];
-  structural_prompt?: string;
-  status?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Chapter {
-  id: string;
-  story_id: string;
-  chapter_number: number;
-  content: string;
-  prompt?: string;
-  created_at?: string;
-}
-
+// User interface remains local as it's not part of shared types yet
 interface User {
   id: string;
   [key: string]: any;
@@ -44,10 +15,12 @@ interface User {
 interface RequestBody {
   story_id: string;
   prompt?: string;
+  // These fields are for updating the story, they align with Story type fields
   reading_level?: number;
   story_length?: number;
-  chapter_length?: Preferences["chapter_length"];
+  chapter_length?: number;
   structural_prompt?: string;
+  // preferences?: Preferences; // RequestBody doesn't update preferences object directly, only root fields
 }
 
 /**
@@ -59,17 +32,21 @@ function isPositiveInt(val: unknown): val is number {
 function isReadingLevel(val: unknown): val is number {
   return typeof val === "number" && val >= 0 && val <= 12;
 }
-function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
-  return (
-    typeof val === "string" &&
-    [
-      "A sentence",
-      "A few sentences",
-      "A small paragraph",
-      "A full paragraph",
-      "A few paragraphs"
-    ].includes(val)
-  );
+// function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
+//   return (
+//     typeof val === "string" &&
+//     [
+//       "A sentence",
+//       "A few sentences",
+//       "A small paragraph",
+//       "A full paragraph",
+//       "A few paragraphs"
+//     ].includes(val)
+//   );
+// }
+
+function isValidChapterLength(val: unknown): val is number {
+  return typeof val === "number" && Number.isInteger(val) && val > 0 && val <= 5; // Assuming 5 is a reasonable upper limit
 }
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -88,16 +65,19 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 async function generateChapter(
   context: string,
   prompt: string | undefined,
-  preferences: Preferences
+  storyParams: Story // Changed type to imported Story
 ): Promise<string> {
   const userPrompt = prompt ? `Continue the story with this user input: "${prompt}"` : "Continue the story in an interesting way.";
-  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  // Access properties from storyParams (which is of type Story)
+  const readinglevel = storyParams?.reading_level !== 0 ? `${storyParams?.reading_level} Grade` :'Kindergarden';
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
       {
         role: "system",
-        content: `${preferences?.structural_prompt}
+        // Use storyParams.structural_prompt or storyParams.preferences.structural_prompt
+        // The existing prompt just uses the top-level structural_prompt from the Story object.
+        content: `${storyParams?.structural_prompt || (storyParams?.preferences as Preferences)?.structural_prompt || ''}
 
 # ADAPTIVE STORY CONTINUATION SYSTEM
 
@@ -112,10 +92,10 @@ Rading Level: ${readinglevel}
 - If approaching the middle: Deepen conflicts, increase stakes, or introduce complications
 - If approaching the end: Begin resolving plot threads while maintaining tension
 - If this is the final chapter: Provide a satisfying resolution to the main conflicts while honoring character arcs
-- Maintain exactly ${preferences?.story_length || "the specified number of"} total chapters in your planning
+- Maintain exactly ${storyParams?.story_length || "the specified number of"} total chapters in your planning
 
 ### CHAPTER CONSTRUCTION
-- Create a chapter precisely ${preferences?.chapter_length || "A full paragraph"} in length
+- Create a chapter precisely ${storyParams?.chapter_length || "A full paragraph"} in length
 - Begin with a subtle connection to previous events without extensive recapping
 - End with a compelling development that maintains momentum and reader engagement
 - Every element must serve the dual purpose of advancing the plot and developing characters
@@ -210,7 +190,7 @@ serve(async (req: Request): Promise<Response> => {
     if (
       (reading_level !== undefined && !isReadingLevel(reading_level)) ||
       (story_length !== undefined && !isPositiveInt(story_length)) ||
-      (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
+      (chapter_length !== undefined && !isValidChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
@@ -234,92 +214,118 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Load story and chapters (after possible update)
-    const { data: story, error: storyError } = await supabase
+    const { data: storyData, error: storyError } = await supabase
       .from('stories')
-      .select('*')
+      .select('*') // Select all columns to match the Story type
       .eq('id', story_id)
       .single();
-    if (storyError || !story) throw new Error('Story not found');
+
+    if (storyError) throw new Error(`Story fetch error: ${storyError.message}`);
+    if (!storyData) throw new Error('Story not found');
+    
+    const story = storyData as Story; // Cast to imported Story type
+
     if (story.user_id !== user.id) return withCORSHeaders(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }));
 
-    const { data: chapters, error: chaptersError } = await supabase
+    const { data: chapterData, error: chaptersError } = await supabase
       .from('chapters')
-      .select('*')
+      .select('*') // Select all columns to match the Chapter type
       .eq('story_id', story_id)
       .order('chapter_number', { ascending: true });
-    if (chaptersError) throw new Error(chaptersError.message);
+
+    if (chaptersError) throw new Error(`Chapters fetch error: ${chaptersError.message}`);
+    const chapters = (chapterData || []) as Chapter[]; // Cast to array of imported Chapter type
 
     // Build context from previous chapters
-    const context = chapters.map((ch: any) => ch.content).join('\n\n');
+    const context = chapters.map((ch: Chapter) => ch.content).join('\n\n');
 
     // Generate next chapter using latest story parameters
     let content: string;
     const chapter_number = chapters.length + 1;
     const isFinalChapter = story.story_length && chapter_number >= Number(story.story_length);
+
+    // The generateChapter function now expects a Story object.
+    // We pass the loaded 'story' directly.
+    // For the 'conclude' case, we might need to pass a modified Story object or handle it inside generateChapter.
+    // The current OpenAI prompt structure does not explicitly use a 'conclude' flag in its text.
+    // For now, we'll pass the story object as is. The prompt text itself should guide conclusion.
+    // If 'conclude' is essential, generateChapter's logic or Story type might need adjustment.
+    // Given "No Change Needed for now" for OpenAI prompt, let's keep it simple.
+
     if (isFinalChapter) {
-      // Prompt agent to conclude the story and add "The End"
-      content = await generateChapter(context, prompt, {
-        preferences: story.preferences,
-        reading_level: story.reading_level,
-        story_length: story.story_length,
-        chapter_length: story.chapter_length,
-        structural_prompt: story.structural_prompt,
-        conclude: true
-      });
+      // Pass the current story state. The prompt should inherently lead to a conclusion.
+      content = await generateChapter(context, prompt, story);
+      // Ensure "The End" is appended if the LLM doesn't naturally conclude.
       if (!/the end/i.test(content.trim())) {
         content = content.trim() + "\n\nThe End.";
       }
     } else {
-      content = await generateChapter(context, prompt, {
-        preferences: story.preferences,
-        reading_level: story.reading_level,
-        story_length: story.story_length,
-        chapter_length: story.chapter_length,
-        structural_prompt: story.structural_prompt
-      });
+      content = await generateChapter(context, prompt, story);
     }
 
     // Insert new chapter
-    const { data: chapter, error: chapterError } = await supabase
-      .from('chapters')
-      .insert([{
+    const chapterToInsert: Partial<Chapter> = { // Use Partial<Chapter> for type safety
         story_id,
         chapter_number,
         content,
-        prompt
-      }])
+        prompt,
+    };
+    const { data: newChapterData, error: chapterError } = await supabase
+      .from('chapters')
+      .insert([chapterToInsert])
       .select()
       .single();
-    if (chapterError) throw new Error(chapterError.message);
 
-    // Update story updated_at
+    if (chapterError) throw new Error(`Chapter insertion error: ${chapterError.message}`);
+    if (!newChapterData) throw new Error('Failed to create chapter: No data returned.');
+
+    const newChapter = newChapterData as Chapter; // Cast to imported Chapter type
+
+    // Update story updated_at and potentially status if it's the final chapter
+    const finalStoryUpdate: Partial<Story> = { updated_at: new Date().toISOString() };
+    if (isFinalChapter) {
+      finalStoryUpdate.status = 'completed'; // Assuming 'completed' is a valid status
+    }
+
     await supabase
       .from('stories')
-      .update({ updated_at: new Date().toISOString() })
+      .update(finalStoryUpdate)
       .eq('id', story_id);
+    
+    // Re-fetch the story to return its latest state, including the new updated_at and status
+    const { data: updatedStoryData, error: updatedStoryError } = await supabase
+      .from('stories')
+      .select('*')
+      .eq('id', story_id)
+      .single();
+
+    if (updatedStoryError || !updatedStoryData) {
+        console.warn("Failed to re-fetch updated story, returning previous state for story object.");
+        // Fallback to returning the story object before the final update if re-fetch fails
+         return withCORSHeaders(new Response(JSON.stringify({
+          story, // story before status update
+          chapter: {
+            id: newChapter.id,
+            chapter_number: newChapter.chapter_number,
+            content: newChapter.content,
+            created_at: newChapter.created_at
+          }
+        }), { status: 201 }));
+    }
+    const updatedStory = updatedStoryData as Story;
+
 
     return withCORSHeaders(new Response(JSON.stringify({
-      story: {
-        id: story.id,
-        user_id: story.user_id,
-        title: story.title,
-        preferences: story.preferences,
-        reading_level: story.reading_level,
-        story_length: story.story_length,
-        chapter_length: story.chapter_length,
-        structural_prompt: story.structural_prompt,
-        status: story.status,
-        created_at: story.created_at,
-        updated_at: story.updated_at
-      },
-      chapter: {
-        id: chapter.id,
-        chapter_number: chapter.chapter_number,
-        content: chapter.content,
-        created_at: chapter.created_at
+      story: updatedStory, // Return the fully updated story object
+      chapter: { // Return relevant chapter details
+        id: newChapter.id,
+        chapter_number: newChapter.chapter_number,
+        content: newChapter.content,
+        created_at: newChapter.created_at
       }
     }), { status: 201 }));
   } catch (err: any) {
+    console.error("Error in continue_story:", err);
     return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
   }
 });

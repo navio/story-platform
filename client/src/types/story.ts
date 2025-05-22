@@ -1,12 +1,3 @@
-export type Story = {
-  id: string;
-  title: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  preferences?: any;
-  story_length?: number;
-  reading_level?: number;
-  chapter_length?: string;
-  structural_prompt?: string;
-};
+// Existing Story type definition is removed.
+// Re-exporting Story from the shared location.
+export * from '../../../shared/types/Story';
