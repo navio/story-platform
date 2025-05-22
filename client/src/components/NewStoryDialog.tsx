@@ -84,16 +84,24 @@ const NewStoryDialog: React.FC<NewStoryDialogProps> = ({
         />
         <Box mt={2}>
           <Typography gutterBottom>
-            Reading Level: {readingLevel === 1 ? "Kindergarten" : `${readingLevel + 4}th Grade`}
+            Reading Level: {readingLevel === 0 ? "Kindergarten" : `${readingLevel} Grade`}
           </Typography>
           <Slider
             value={readingLevel}
-            min={1}
+            min={0}
             max={10}
             step={1}
             marks={[
-              { value: 1, label: "K" },
+              { value: 0, label: "K" },
+              { value: 1, label: "1st" },
+              { value: 2, label: "2nd" },
+              { value: 3, label: "3rd" },
+              { value: 4, label: "4th" },
               { value: 5, label: "5th" },
+              { value: 6, label: "6th" },
+              { value: 7, label: "7th" },
+              { value: 8, label: "8th" },
+              { value: 9, label: "9th" },
               { value: 10, label: "10th" }
             ]}
             onChange={(_, v) => setReadingLevel(v as number)}

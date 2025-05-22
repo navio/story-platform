@@ -91,6 +91,7 @@ async function generateChapter(
   preferences: Preferences
 ): Promise<string> {
   const userPrompt = prompt ? `Continue the story with this user input: "${prompt}"` : "Continue the story in an interesting way.";
+  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
@@ -103,6 +104,8 @@ async function generateChapter(
 You are an expert narrative developer specializing in crafting compelling story continuations. Your task is to advance an existing story while maintaining narrative cohesion, character consistency, and progression toward a satisfying conclusion.
 
 ## CONTINUATION FRAMEWORK
+
+Rading Level: ${readinglevel}
 
 ### NARRATIVE PROGRESSION
 - Continue the story with precise awareness of where this chapter falls in the overall arc (beginning, middle, or end)

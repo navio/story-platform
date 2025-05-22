@@ -89,6 +89,7 @@ async function getUserFromJWT(jwt: string): Promise<User> {
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
 async function generateChapter(prompt: string, preferences: Preferences): Promise<string> {
+  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
   const body = {
     model: "gpt-3.5-turbo",
     messages: [
@@ -101,6 +102,8 @@ async function generateChapter(prompt: string, preferences: Preferences): Promis
 You are an expert narrative creator specializing in episodic storytelling tailored to readers of various skill levels. Your stories will be both educational and engaging, with each chapter serving a deliberate purpose in developing characters and advancing a cohesive plot.
 
 ## CORE STORYTELLING FRAMEWORK
+
+Story reading level: ${readinglevel}
 
 ### STORY STRUCTURE & PLANNING
 - Create a compelling narrative that spans exactly ${preferences?.story_length || "the specified number of"} chapters
