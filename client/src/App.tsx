@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 
@@ -28,10 +30,15 @@ function App() {
     return <div>Loading...</div>;
   }
 
-  return session ? (
-    <Dashboard onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }} />
-  ) : (
-    <Auth />
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {session ? (
+        <Dashboard onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }} />
+      ) : (
+        <Auth />
+      )}
+    </ThemeProvider>
   );
 }
 

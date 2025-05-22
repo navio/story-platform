@@ -66,7 +66,7 @@ const StoryView: React.FC<StoryViewProps> = ({
   error,
 }) => {
   return (
-    <Box>
+    <Box sx={{border: '1px solid white'}}>
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Paper elevation={3} sx={{ p: { xs: 2, sm: 4, md: 12 }, borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -118,8 +118,11 @@ const StoryView: React.FC<StoryViewProps> = ({
                     letterSpacing: 1,
                   }}
                   disabled={Boolean(addingChapter)}
-                  onClick={async () => {
-                    // This should be handled by parent, but for now, do nothing
+                  onClick={e => {
+                    // Call the same handler as the form to render the next chapter
+                    if (handleAddChapter) {
+                      handleAddChapter(e);
+                    }
                   }}
                 >
                   Continue
