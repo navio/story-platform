@@ -179,7 +179,7 @@ function withCORSHeaders(resp: Response): Response {
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 204 }));
+    return withCORSHeaders(new Response(null, { status: 200 }));
   }
 
   if (req.method !== 'POST') {

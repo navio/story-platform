@@ -91,7 +91,7 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 async function generateChapter(prompt: string, preferences: Preferences): Promise<string> {
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
   const body = {
-    model: "gpt-3.5-turbo",
+    model: "gpt-4.1-mini-2025-04-14",
     messages: [
       {
         role: "system",
@@ -170,7 +170,7 @@ Remember: Every chapter should leave the reader both satisfied with what they've
 
 function withCORSHeaders(resp: Response): Response {
   const headers = new Headers(resp.headers);
-  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Origin", "https://story-platform.netlify.app");
   headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "authorization, content-type");
   return new Response(resp.body, { ...resp, headers });
@@ -179,7 +179,7 @@ function withCORSHeaders(resp: Response): Response {
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 204 }));
+    return withCORSHeaders(new Response(null, { status: 200 }));
   }
 
   if (req.method !== 'POST') {
