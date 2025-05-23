@@ -128,6 +128,7 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
                     sx={{
                       minWidth: 120,
                       fontWeight: 600,
+                      textWrap: 'auto',
                       fontSize: '1rem',
                       textTransform: 'none',
                       borderRadius: 2,
