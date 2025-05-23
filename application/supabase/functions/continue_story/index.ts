@@ -117,15 +117,16 @@ async function generateChapter(
 ): Promise<string> {
   const userPrompt = prompt ? `Continue the story with this user input: "${prompt}"` : "Continue the story in an interesting way.";
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  const chapterLength = preferences?.chapter_length || "A full paragraph";
   const body = {
-    model: "gpt-3.5-turbo",
+    model: "gpt-4.1-mini-2025-04-14",
     messages: [
       {
         role: "system",
         content: `# CHAPTER CONTINUATION: MAXIMUM ENGAGEMENT PROTOCOL
 
 Generate the next chapter of the ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
-Length: EXACTLY ${preferences?.chapter_length || "[LENGTH]"}. 
+Length: EXACTLY ${chapterLength}.
 Reading level: ${readinglevel}.
 
 ## PRIME DIRECTIVE
@@ -490,6 +491,19 @@ serve(async (req: Request): Promise<Response> => {
       .eq('story_id', story_id)
       .order('chapter_number', { ascending: true });
     if (chaptersError) throw new Error(chaptersError.message);
+
+    // ENFORCE STORY LENGTH LIMIT
+    if (
+      typeof story.story_length === "number" &&
+      chapters.length >= Number(story.story_length)
+    ) {
+      return withCORSHeaders(
+        new Response(
+          JSON.stringify({ error: "Story has reached its maximum number of chapters." }),
+          { status: 400 }
+        )
+      );
+    }
 
     // Build context from previous chapters
     const context = chapters.map((ch: any) => ch.content).join('\n\n');
