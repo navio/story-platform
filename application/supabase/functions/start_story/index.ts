@@ -120,7 +120,7 @@ async function generateChapter(prompt: string, preferences: Preferences): Promis
         content: `# CHAPTER ONE: MAXIMUM ENGAGEMENT PROTOCOL
 
 Generate Chapter 1 of a ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
-Length: EXACTLY ${preferences?.chapter_length || "[LENGTH]"}. 
+Length: EXACTLY ${preferences?.chapter_length || "a pargraph"}. 
 Reading level: ${readinglevel}.
 
 ## PRIME DIRECTIVE

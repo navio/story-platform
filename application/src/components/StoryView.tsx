@@ -126,14 +126,13 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
                     variant="outlined"
                     color="primary"
                     sx={{
+                      textWrap: "wrap",
                       minWidth: 120,
                       fontWeight: 600,
-                      textWrap: 'auto',
                       fontSize: '1rem',
                       textTransform: 'none',
                       borderRadius: 2,
                       boxShadow: 1,
-                      whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       px: 2,

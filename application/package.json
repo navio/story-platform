@@ -19,7 +19,11 @@
     "test:playwright": "playwright test",
     "playwright:codegen": "playwright codegen",
     "playwright:install": "playwright install",
-    "playwright:report": "playwright show-report"
+    "playwright:report": "playwright show-report",
+    "release:be": "npm run release:start_story && npm run release:continue_story && npm run release:get_continuations",
+    "release:start_story": "supabase functions deploy start_story --project-ref xzngetmbbuoxjucudiyo",
+    "release:continue_story": "supabase functions deploy continue_story --project-ref xzngetmbbuoxjucudiyo",
+    "release:get_continuations": "supabase functions deploy get_continuations --project-ref xzngetmbbuoxjucudiyo"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
