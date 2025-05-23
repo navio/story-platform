@@ -94,20 +94,22 @@ export function useStories() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to create story');
       // Refetch stories and select the new one
-      const { data: newStoryData, error: newStoryError } = await supabase
+      // Refetch stories and select the most recent one for the user (by title and created_at)
+      const { data: allStories, error: allStoriesError } = await supabase
         .from('stories')
         .select('*')
-        .eq('id', result.story?.id)
-        .single();
-      if (newStoryError) throw new Error(newStoryError.message);
-      if (!newStoryData) {
-        setError(newStoryError ? (newStoryError as any).message : 'No data returned');
+        .order('created_at', { ascending: false });
+      if (allStoriesError) throw new Error(allStoriesError.message);
+      // Try to find the story with the matching title (and optionally user_id if available)
+      const newStory = allStories?.find((s: any) => s.title === params.title) || (allStories && allStories[0]);
+      if (!newStory) {
+        setError('Story not found after creation');
         setLoading(false);
-        return Promise.reject(new Error(newStoryError ? (newStoryError as any).message : 'No data returned'));
+        return Promise.reject(new Error('Story not found after creation'));
       }
-      setStories(prev => [newStoryData, ...prev]);
+      setStories(prev => [newStory, ...prev]);
       setLoading(false);
-      return newStoryData as Story;
+      return newStory as Story;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -196,5 +198,6 @@ export function useStories() {
     updateStory,
     deleteStory,
     setStories, // for selection, if needed
+    setError,
   };
 }

@@ -36,6 +36,7 @@ import AppHeader from './components/AppHeader';
 import StoriesDrawer from './components/StoriesDrawer';
 import StoryList from './components/StoryList';
 import StoryView from './components/StoryView';
+import type { Continuation } from './types/chapter';
 import NewStoryDialog from './components/NewStoryDialog';
 
 import type { Story } from './types/story';
@@ -53,6 +54,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     updateStory,
     deleteStory,
     setStories,
+    setError,
   } = useStories();
 
   const [showNewStory, setShowNewStory] = useState(false);
@@ -64,12 +66,14 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   // --- Chapter logic extracted to hook ---
   const {
     chapters,
+    continuations,
     loading: chaptersLoading,
     error: chaptersError,
     newPrompt,
     setNewPrompt,
     fetchChapters,
     addChapter,
+    fetchingContinuations,
   } = useChapters(selectedStory?.id ?? null);
 
   // Story settings state (for new story)
@@ -125,6 +129,11 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         setNewPrompt={setNewPrompt}
         handleAddChapter={(e: React.FormEvent) => {
           e.preventDefault();
+          addChapter();
+        }}
+        continuations={continuations}
+        handleSelectContinuation={(continuation: Continuation) => {
+          setNewPrompt(continuation.description);
           addChapter();
         }}
         setSelectedStory={setSelectedStory}
@@ -193,6 +202,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           setEditSettingsLoading(false);
         }}
         error={chaptersError || error}
+        fetchingContinuations={fetchingContinuations}
       />
     );
   }
@@ -300,6 +310,8 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           setStoryLength(10);
           setChapterLength("A full paragraph");
           setStructuralPrompt('');
+          // Clear any error state after successful creation
+          setError(null);
         } catch (err) {
           // Log error for debugging and keep dialog open so error is visible
           // eslint-disable-next-line no-console

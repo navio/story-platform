@@ -16,6 +16,8 @@ import type { Chapter } from '../types/chapter';
 import ChapterList from './ChapterList';
 import StorySettingsDialog from './StorySettingsDialog';
 
+import type { Continuation } from '../types/chapter';
+
 interface StoryViewProps {
   selectedStory: Story;
   chapters: Chapter[];
@@ -23,6 +25,8 @@ interface StoryViewProps {
   newPrompt: string;
   setNewPrompt: (prompt: string) => void;
   handleAddChapter: (e: React.FormEvent) => void;
+  continuations: Continuation[];
+  handleSelectContinuation: (continuation: Continuation) => void;
   setSelectedStory: (story: Story | null) => void;
   showStorySettings: boolean;
   setShowStorySettings: (show: boolean) => void;
@@ -42,13 +46,15 @@ interface StoryViewProps {
   error: string | null;
 }
 
-const StoryView: React.FC<StoryViewProps> = ({
+const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> = ({
   selectedStory,
   chapters,
   addingChapter,
   newPrompt,
   setNewPrompt,
   handleAddChapter,
+  continuations,
+  handleSelectContinuation,
   setSelectedStory,
   showStorySettings,
   setShowStorySettings,
@@ -64,6 +70,7 @@ const StoryView: React.FC<StoryViewProps> = ({
   editSettingsLoading,
   handleUpdateSettings,
   error,
+  fetchingContinuations = false,
 }) => {
   return (
     <Box sx={{border: '1px solid white'}}>
@@ -91,6 +98,7 @@ const StoryView: React.FC<StoryViewProps> = ({
             {selectedStory?.title}
           </Typography>
           <Box minHeight={200} mb={2}>
+            <ChapterList chapters={chapters} />
             {addingChapter && (
               <Box textAlign="center" my={4} color="text.secondary" fontStyle="italic">
                 <CircularProgress size={24} sx={{ mr: 1 }} />
@@ -100,11 +108,58 @@ const StoryView: React.FC<StoryViewProps> = ({
             {chapters.length === 0 && !addingChapter && (
               <Typography>No chapters yet.</Typography>
             )}
-            <ChapterList chapters={chapters} />
           </Box>
+          {/* Continuation Options */}
+          {fetchingContinuations ? (
+            <Box textAlign="center" my={3}>
+              <CircularProgress size={20} sx={{ mr: 1 }} />
+              <Typography variant="body2" color="text.secondary" display="inline">
+                Creating options...
+              </Typography>
+            </Box>
+          ) : (
+            continuations && continuations.length > 0 && (
+              <Box display="flex" flexDirection={'column'} gap={2} mt={2} mb={2} justifyContent="center">
+                {continuations.map((option, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outlined"
+                    color="primary"
+                    sx={{
+                      minWidth: 120,
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textTransform: 'none',
+                      borderRadius: 2,
+                      boxShadow: 1,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      px: 2,
+                      py: 1.2,
+                    }}
+                    onClick={() => handleSelectContinuation(option)}
+                    disabled={addingChapter}
+                  >
+                    {option.description}
+                  </Button>
+                ))}
+              </Box>
+            )
+          )}
           <Box display="flex" gap={2} mt={3}>
             {!(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)) && (
               <>
+                <Box component="form" onSubmit={handleAddChapter} flex={1}>
+                  <TextField
+                    value={newPrompt}
+                    onChange={e => setNewPrompt(e.target.value)}
+                    placeholder="Write the next part or prompt the agent..."
+                    label="What happen next?"
+                    fullWidth
+                    disabled={Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))}
+                  />
+                </Box>
                 <Button
                   variant="contained"
                   color="info"
@@ -127,16 +182,6 @@ const StoryView: React.FC<StoryViewProps> = ({
                 >
                   Continue
                 </Button>
-                <Box component="form" onSubmit={handleAddChapter} flex={1}>
-                  <TextField
-                    value={newPrompt}
-                    onChange={e => setNewPrompt(e.target.value)}
-                    placeholder="Write the next part or prompt the agent..."
-                    label="Next prompt"
-                    fullWidth
-                    disabled={Boolean(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length))}
-                  />
-                </Box>
               </>
             )}
             {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) && (

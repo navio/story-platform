@@ -36,6 +36,28 @@ interface Chapter {
   created_at?: string;
 }
 
+
+/**
+ * API response for starting a story.
+ *
+ * {
+ *   story: { ... },
+ *   chapter: { ... },
+ *   continuations: [
+ *     { description: string },
+ *     { description: string },
+ *     { description: string }
+ *   ]
+ * }
+ */
+/**
+ * API response for starting a story.
+ * Returns only the first chapter object for the user to read.
+ */
+interface StartStoryResponse {
+  chapter: Chapter;
+}
+
 interface User {
   id: string;
   [key: string]: any;
@@ -95,61 +117,162 @@ async function generateChapter(prompt: string, preferences: Preferences): Promis
     messages: [
       {
         role: "system",
-        content: `${preferences?.structural_prompt}
+        content: `# CHAPTER ONE: MAXIMUM ENGAGEMENT PROTOCOL
 
-# ADAPTIVE STORYTELLING SYSTEM
+Generate Chapter 1 of a ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
+Length: EXACTLY ${preferences?.chapter_length || "[LENGTH]"}. 
+Reading level: ${readinglevel}.
 
-You are an expert narrative creator specializing in episodic storytelling tailored to readers of various skill levels. Your stories will be both educational and engaging, with each chapter serving a deliberate purpose in developing characters and advancing a cohesive plot.
+## PRIME DIRECTIVE
+Create an opening so compelling that readers would pay money to read Chapter 2. Every sentence must be a hook that pulls deeper into the story.
 
-## CORE STORYTELLING FRAMEWORK
+## OPENING IMPACT FORMULA
 
-Story reading level: ${readinglevel}
+### THE FIRST LINE RULE
+Open with one of these power techniques:
+- In medias res: Drop readers into the middle of action
+- The Paradox: Present an impossible situation
+- The Voice: Unforgettable character perspective
+- The Question: Pose something readers must know
+- The Reversal: Subvert expectations immediately
 
-### STORY STRUCTURE & PLANNING
-- Create a compelling narrative that spans exactly ${preferences?.story_length || "the specified number of"} chapters
-- Plan the full story arc before writing, ensuring meaningful progression through beginning, middle, and end
-- Each chapter must advance both the plot and character development in significant ways
-- Maintain consistent pacing appropriate to the story length - if planning 5 chapters, position the climax appropriately
+### SENSORY IMMERSION PROTOCOL
+Within the first 100 words, engage:
+- A unique sound that sets atmosphere
+- A visceral physical sensation
+- An unexpected smell or taste
+- A visual that burns into memory
+- An emotion that readers feel physically
 
-### CHAPTER DEVELOPMENT
-- Each chapter must be precisely ${preferences?.chapter_length || "A full paragraph"} in length
-- Every word should serve a purpose - avoid filler content that doesn't advance the story
-- Begin chapters with brief but natural connections to previous events (after chapter 1)
-- End chapters with meaningful developments that drive reader interest
+## CHARACTER MAGNETISM ENGINE
 
-### READING SKILL ADAPTATION
-When adapting to the reader's skill level:
-- BEGINNER: Focus on clear, direct storytelling with straightforward cause and effect. Use simpler vocabulary and sentence structure while maintaining an engaging narrative.
-- INTERMEDIATE: Introduce more complex plot elements, character motivations, and linguistic structures. Include some challenging vocabulary in context.
-- ADVANCED: Develop nuanced themes, sophisticated character development, and complex narrative structures. Incorporate advanced literary techniques and vocabulary.
+### INSTANT CONNECTION TECHNIQUE
+Make readers care desperately about your protagonist within 3 paragraphs by showing:
+- A relatable vulnerability hidden beneath strength
+- A specific detail that makes them unforgettable
+- A moral line they won't cross (that they'll have to)
+- A secret desire they can't admit
+- A ticking clock only they know about
 
-### CHARACTER & ARC DEVELOPMENT
-- Create memorable characters with clear motivations, flaws, and growth potential
-- Show character evolution through decisions, actions, and reactions
-- Ensure character development is proportional to the story length
-- Build meaningful relationships that evolve naturally throughout the narrative
-- Character growth should mirror the main story arc, reaching resolution by the final chapter
+### THE CONTRADICTION PRINCIPLE
+Your protagonist must be:
+- Competent but flawed in a specific, plot-critical way
+- Confident but harboring a deep fear
+- Moral but capable of necessary darkness
+- Ordinary but with one extraordinary quality
+- In control but about to lose everything
 
-### NARRATIVE TECHNIQUES
-- Use "show, don't tell" principles appropriate to the reading level
-- Incorporate dialogue that reveals character and advances plot simultaneously
-- Create sensory-rich environments that immerse readers in the story world
-- Balance description, action, and dialogue based on reading level and story needs
-- Include appropriate literary devices that enhance rather than distract from the story
+## PLOT ARCHITECTURE
 
-## EDUCATIONAL INTEGRATION
-- Naturally incorporate vocabulary and concepts appropriate to the reading level
-- Create opportunities for readers to make predictions and connections
-- Include subtle thematic elements that encourage critical thinking
-- Ensure the story is not just readable but re-readable, with layers of meaning
+### THE TRIPLE HOOK SYSTEM
+Layer three escalating hooks:
+1. Immediate: A problem that needs solving NOW
+2. Personal: A stake that threatens what character loves most
+3. Universal: A larger mystery that affects everything
 
-Remember: Every chapter should leave the reader both satisfied with what they've read and eager to continue. The complete story must provide closure while having been a meaningful journey for both the characters and the reader.
+### MICRO-TENSION INJECTION
+Every 50 words must contain:
+- A question (stated or implied)
+- A contradiction
+- A sensory detail
+- Forward momentum
+- Emotional stakes raising
+
+### THE BREADCRUMB CONSPIRACY
+Plant these elements that pay off later:
+- An object mentioned casually that becomes crucial
+- A throwaway line that's actually the key to everything
+- A background detail that explains a future revelation
+- A character behavior that hints at their secret
+- A seemingly random event that's carefully orchestrated
+
+## CLIFFHANGER ENGINEERING
+
+### THE POINT OF NO RETURN
+End Chapter 1 at the exact moment where:
+- The protagonist can't go back to their old life
+- A truth is half-revealed (readers see it, character doesn't)
+- Two impossible things are both true
+- The real game is revealed to be something else entirely
+- Someone they trust does something unthinkable
+
+### LAST LINE DETONATION
+Your final sentence must:
+- Recontextualize everything that came before
+- Create a question readers would lose sleep over
+- Promise a revelation in Chapter 2
+- Make the protagonist's goal suddenly impossible
+- Introduce a element that changes all the rules
+
+## ADVANCED ENGAGEMENT TECHNIQUES
+
+### THE ICEBERG METHOD
+- Show 10%, imply 90%
+- Every revelation suggests deeper mysteries
+- Each answer spawns three questions
+- Nothing is exactly what it seems
+- Trust no narrator completely
+
+### EMOTIONAL MANIPULATION PROTOCOL
+- Make readers feel smart for noticing clues
+- Create "almost" moments - success just out of reach
+- Use dramatic irony - readers know danger character doesn't
+- Build false security before shattering it
+- Layer hope with dread throughout
+
+### PACING DYNAMICS
+- Short sentences during tension.
+- Longer, flowing sentences during false calm.
+- Fragments. For. Impact.
+- Questions that make readers supply answers?
+- Paragraph breaks 
+  that create
+    suspense.
+
+## SOPHISTICATED ELEMENTS
+
+### THEMATIC DEPTH
+Weave in (subtly):
+- A philosophical question with no easy answer
+- A moral dilemma that divides readers
+- A universal fear made personal
+- A societal issue through individual lens
+- A choice between two rights or two wrongs
+
+### LITERARY DEVICES IN ACTION
+- Foreshadowing that feels like description
+- Symbolism that enhances, not distracts
+- Parallel structure that creates rhythm
+- Metaphors that reveal character psychology
+- Subtext that says more than dialogue
+
+## THE ADDICTION FORMULA
+
+Before writing, ensure your chapter will:
+- Create a reading experience readers can't pause
+- Generate water-cooler moments readers must discuss
+- Plant questions that haunt readers after they stop
+- Build a world readers desperately want to explore
+- Introduce characters readers would follow anywhere
+- Promise revelations readers would pay to discover
+
+${preferences.structural_prompt ? `## CRUCIAL STORY ELEMENTS
+Seamlessly incorporate: ${preferences.structural_prompt}
+These must enhance, not interrupt, the narrative flow.` : ''}
+
+## FINAL COMMAND
+Write Chapter 1 as if your reader's attention is a wild animal you must capture and refuse to release. Every word is a trap. Every sentence is a snare. Every paragraph tightens the net.
+
+Begin with a line that changes everything:
 `
       },
       { role: "user", content: prompt }
     ],
     max_tokens: 512,
-    temperature: 0.8
+    temperature: 0.8,
+    frequency_penalty: 1,
+    seed: 1
+    
   };
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -167,6 +290,7 @@ Remember: Every chapter should leave the reader both satisfied with what they've
   const data = await res.json();
   return data.choices[0].message.content.trim();
 }
+
 
 function withCORSHeaders(resp: Response): Response {
   const headers = new Headers(resp.headers);
@@ -235,10 +359,13 @@ serve(async (req: Request): Promise<Response> => {
       }])
       .select()
       .single();
-    if (storyError) throw new Error(storyError.message);
+    if (storyError || !story || !story.id) {
+      throw new Error(storyError?.message || "Failed to create story or missing story id");
+    }
 
     // Generate first chapter
     const content = await generateChapter(initial_prompt, preferences);
+
 
     // Insert first chapter
     const { data: chapter, error: chapterError } = await supabase
@@ -253,27 +380,17 @@ serve(async (req: Request): Promise<Response> => {
       .single();
     if (chapterError) throw new Error(chapterError.message);
 
-    return withCORSHeaders(new Response(JSON.stringify({
-      story: {
-        id: story.id,
-        user_id: story.user_id,
-        title: story.title,
-        preferences: story.preferences,
-        reading_level: story.reading_level,
-        story_length: story.story_length,
-        chapter_length: story.chapter_length,
-        structural_prompt: story.structural_prompt,
-        status: story.status,
-        created_at: story.created_at,
-        updated_at: story.updated_at
-      },
+    const response: StartStoryResponse = {
       chapter: {
         id: chapter.id,
+        story_id: chapter.story_id ?? story.id,
         chapter_number: chapter.chapter_number,
         content: chapter.content,
         created_at: chapter.created_at
       }
-    }), { status: 201 }));
+    };
+
+    return withCORSHeaders(new Response(JSON.stringify(response), { status: 201 }));
   } catch (err: any) {
     return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
   }

@@ -36,6 +36,31 @@ interface Chapter {
   created_at?: string;
 }
 
+/**
+ * Represents a possible continuation for the story.
+ */
+interface ContinuationOption {
+  description: string;
+}
+
+/**
+ * API response for continuing a story.
+ *
+ * {
+ *   story: { ... },
+ *   chapter: { ... },
+ *   continuations: [
+ *     { description: string },
+ *     { description: string },
+ *     { description: string }
+ *   ]
+ * }
+ */
+interface ContinueStoryResponse {
+  story: Story;
+  chapter: Chapter;
+}
+
 interface User {
   id: string;
   [key: string]: any;
@@ -97,54 +122,216 @@ async function generateChapter(
     messages: [
       {
         role: "system",
-        content: `${preferences?.structural_prompt}
+        content: `# CHAPTER CONTINUATION: MAXIMUM ENGAGEMENT PROTOCOL
 
-# ADAPTIVE STORY CONTINUATION SYSTEM
+Generate the next chapter of the ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
+Length: EXACTLY ${preferences?.chapter_length || "[LENGTH]"}. 
+Reading level: ${readinglevel}.
 
-You are an expert narrative developer specializing in crafting compelling story continuations. Your task is to advance an existing story while maintaining narrative cohesion, character consistency, and progression toward a satisfying conclusion.
+## PRIME DIRECTIVE
+Create a continuation so compelling that readers would sacrifice sleep to read the next chapter. Every sentence must tighten the narrative noose.
 
-## CONTINUATION FRAMEWORK
+## CONTINUATION ARCHITECTURE
 
-Rading Level: ${readinglevel}
+### OPENING IMPACT FORMULA
+First sentence must:
+- Directly address the previous chapter's cliffhanger
+- Subvert or exceed reader expectations
+- Maintain momentum without repetitive recap
+- Hook deeper than the previous chapter
+- Promise this chapter will be even more intense
 
-### NARRATIVE PROGRESSION
-- Continue the story with precise awareness of where this chapter falls in the overall arc (beginning, middle, or end)
-- If approaching the middle: Deepen conflicts, increase stakes, or introduce complications
-- If approaching the end: Begin resolving plot threads while maintaining tension
-- If this is the final chapter: Provide a satisfying resolution to the main conflicts while honoring character arcs
-- Maintain exactly ${preferences?.story_length || "the specified number of"} total chapters in your planning
+### THE ESCALATION IMPERATIVE
+This chapter must be MORE than the last:
+- Higher stakes (what can be lost has increased)
+- Deeper danger (the threat has evolved)
+- Tighter timeline (less time to solve problems)
+- Harder choices (no good options remain)
+- Darker truths (revelations that change everything)
 
-### CHAPTER CONSTRUCTION
-- Create a chapter precisely ${preferences?.chapter_length || "A full paragraph"} in length
-- Begin with a subtle connection to previous events without extensive recapping
-- End with a compelling development that maintains momentum and reader engagement
-- Every element must serve the dual purpose of advancing the plot and developing characters
+## NARRATIVE PROGRESSION DYNAMICS
 
-### STORY COHESION
-- Maintain consistent characterization, settings, and plot elements from previous chapters
-- Reference earlier events, decisions, and character moments to create narrative unity
-- Develop (don't abandon) established conflicts, relationships, and themes
-- Ensure any new elements introduced serve the overall story and don't distract from the main arc
+### CHAPTER POSITION PROTOCOLS
 
-### CHARACTER CONTINUITY
-- Demonstrate character growth resulting from previous events
-- Show how characters are changed by their experiences, not just responding to new situations
-- Deepen relationships established in earlier chapters
-- Allow character decisions to naturally flow from established motivations and growth
+**IF EARLY CHAPTERS (First Third):**
+- Deepen the mystery while providing tantalizing clues
+- Introduce a secondary threat that complicates the primary one
+- Reveal character backstory through action, not exposition
+- Create false victories that mask greater dangers
+- Build alliances that will later be tested
 
-### READING LEVEL MAINTENANCE
-- Sustain the established reading level while continuing to challenge and engage the reader
-- Maintain vocabulary consistency while strategically introducing new terms appropriate to level
-- Keep sentence and paragraph complexity aligned with the reading skill target
-- Ensure thematic elements remain developmentally appropriate while remaining meaningful
+**IF MIDDLE CHAPTERS (Middle Third):**
+- Shatter a fundamental belief the protagonist held
+- Force impossible choices between competing values
+- Reveal that the real enemy isn't who they thought
+- Strip away the protagonist's support systems
+- Approach the "dark night of the soul" moment
 
-## PACING CONSIDERATIONS
-- If early chapters (first third): Continue developing the foundation while introducing meaningful complications
-- If middle chapters (middle third): Intensify conflicts, deepen relationships, raise stakes
-- If later chapters (final third): Begin resolution while maintaining tension until the final chapter
-- If final chapter: Provide closure to all major plot threads and character arcs
+**IF LATER CHAPTERS (Final Third):**
+- Accelerate toward inevitable confrontation
+- Pay off earlier planted clues in surprising ways
+- Force protagonist to use their flaw as a strength
+- Reveal the true cost of victory
+- Build to maximum tension before resolution
 
-Remember: Each chapter must feel like a natural and necessary continuation of what came before while still advancing toward a conclusive ending. Avoid stalling tactics or filler content. Every word should serve the story's progression toward its planned conclusion.`
+**IF FINAL CHAPTER:**
+- Deliver a climax that exceeds all expectations
+- Resolve the central mystery with a revelation that recontextualizes everything
+- Show character transformation through decisive action
+- Provide emotional catharsis while maintaining sophistication
+- End with a line that haunts readers forever
+
+## ADVANCED CONTINUATION TECHNIQUES
+
+### THE CALLBACK CONSPIRACY
+Reference earlier chapters by:
+- Revealing hidden significance of "throwaway" details
+- Showing how minor characters were crucial all along
+- Connecting seemingly unrelated events into a pattern
+- Transforming apparent coincidences into orchestrated plans
+- Making readers want to immediately reread from the beginning
+
+### TENSION MULTIPLICATION SYSTEM
+Layer multiple types of tension:
+- Physical danger (immediate threat)
+- Emotional conflict (relationship stakes)
+- Moral dilemma (ethical impossibilities)
+- Psychological pressure (internal breakdown)
+- Temporal urgency (countdown/deadline)
+
+### THE REVELATION CASCADE
+Structure information reveals:
+- 25% confirmation of reader suspicions (they feel smart)
+- 50% unexpected twists on expectations
+- 25% complete shocking surprises
+- Each revelation must make previous chapters richer
+- Never reveal everything—always hold something back
+
+## CHARACTER EVOLUTION ENGINE
+
+### PRESSURE POINT DEVELOPMENT
+Show how previous events have:
+- Created new fears or dissolved old ones
+- Changed fundamental beliefs about the world
+- Altered relationships in irreversible ways
+- Revealed hidden strengths or devastating weaknesses
+- Pushed characters past their breaking points
+
+### THE TRANSFORMATION TRACKER
+Characters must be different from last chapter:
+- Speech patterns reflect their emotional state
+- Physical descriptions show toll of events
+- Decisions demonstrate learned lessons
+- Reactions reveal how they've hardened or softened
+- Internal thoughts show shifting priorities
+
+## SENSORY IMMERSION PROTOCOL 2.0
+
+### ENVIRONMENTAL STORYTELLING
+Every setting must:
+- Reflect the emotional state of the scene
+- Contain details that advance the plot
+- Hide clues in plain sight
+- Create atmosphere through specific sensations
+- Feel different from previous chapter locations
+
+### MICRO-DETAIL DEPLOYMENT
+Include per 100 words:
+- One unexpected sensory detail
+- One physical sensation that readers feel
+- One environmental element that increases tension
+- One subtle change from previous descriptions
+- One detail that will matter later
+
+## CLIFFHANGER ENGINEERING 2.0
+
+### THE ESCALATING CLIFFHANGER
+This chapter's ending must:
+- Be more intense than the previous cliffhanger
+- Feel inevitable yet surprising
+- Create a problem that seems truly unsolvable
+- Promise the next chapter will change everything
+- Make readers physically unable to stop reading
+
+### CLIFFHANGER VARIETY MATRIX
+Rotate types to maintain freshness:
+- The Betrayal: Trusted ally reveals true nature
+- The Countdown: Time limit suddenly imposed
+- The Trap: Protagonist realizes they've been played
+- The Cost: Victory requires unthinkable sacrifice
+- The Return: Defeated threat resurfaces stronger
+- The Choice: Two people to save, time for only one
+- The Truth: Everything believed was a lie
+
+## PACING DYNAMICS 2.0
+
+### RHYTHM ENGINEERING
+- Action scenes: Short. Sharp. Brutal.
+- Revelation moments: Let sentences breathe with weight
+- Emotional beats: Vary length to mirror feeling
+- Suspense building: Fragments and questions?
+- Climactic moments: ONE. WORD. PARAGRAPHS.
+
+### THE BREATHER TRAP
+Include brief moments of:
+- False calm before storms
+- Small victories before larger defeats
+- Human moments before inhuman choices
+- Beauty before horror
+- Hope before despair
+
+## SOPHISTICATED LAYERING
+
+### THEMATIC DEEPENING
+Without preaching, explore:
+- How good people do terrible things
+- The price of survival vs. maintaining humanity
+- Whether ends can ever justify means
+- The nature of identity under extreme pressure
+- What separates heroes from villains
+
+### LITERARY DEVICE INTEGRATION
+- Irony that cuts both ways
+- Symbolism that evolves with the story
+- Metaphors that become literal
+- Foreshadowing disguised as character moments
+- Parallel structures that create meaning
+
+## THE ADDICTION FORMULA 2.0
+
+Ensure this chapter:
+- Makes the previous chapter better in retrospect
+- Creates moments readers will discuss obsessively
+- Builds mysteries within mysteries
+- Develops characters readers would follow into hell
+- Promises the next chapter will be even more intense
+- Delivers satisfaction while creating new hunger
+
+## CONTINUITY EXCELLENCE
+
+### CALLBACK CHECKLIST
+- Reference at least 3 specific details from previous chapters
+- Show consequences of earlier character decisions
+- Develop relationships established before
+- Build on revealed information logically
+- Honor the emotional journey so far
+
+### CONSISTENCY MAINTENANCE
+- Character voices remain distinct but show evolution
+- Setting details match unless purposefully changed
+- Timeline remains logical and trackable
+- Technology/magic rules stay consistent
+- Motivations flow naturally from established traits
+
+${preferences?.structural_prompt ? `## CRUCIAL STORY ELEMENTS
+Continue incorporating: ${preferences.structural_prompt}
+These elements should feel increasingly integral to the plot.` : ''}
+
+## FINAL COMMAND
+Write this chapter as if the reader's previous investment demands a massive return. Every callback enriches. Every revelation recontextualizes. Every character moment deepens. Every plot development accelerates toward a conclusion that will leave readers breathless.
+
+The story continues NOW:
+`
       },
       { role: "user", content: `Story so far:\n${context}\n\n${userPrompt}` }
     ],
@@ -166,6 +353,61 @@ Remember: Each chapter must feel like a natural and necessary continuation of wh
   }
   const data = await res.json();
   return data.choices[0].message.content.trim();
+}
+
+/**
+ * Generates three possible continuations for the next part of the story.
+ * Each continuation is a brief description (one sentence or a few words).
+ */
+async function generateContinuations(context: string, preferences: Preferences): Promise<ContinuationOption[]> {
+  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  const body = {
+    model: "gpt-4.1-mini-2025-04-14",
+    messages: [
+      {
+        role: "system",
+        content: `You are an expert narrative designer. Given the current story context, suggest three possible directions the story could take next. Each suggestion should be a brief description (one sentence or a few words) and should be creative, engaging, and distinct from each other. Do not continue the story, only provide the options.
+
+Story reading level: ${readinglevel}
+Chapter length: ${preferences?.chapter_length || "A full paragraph"}
+${preferences?.structural_prompt ? "\n" + preferences.structural_prompt : ""}
+`
+      },
+      {
+        role: "user",
+        content: `Current story context:\n${context}\n\nList three possible next directions for the story, each as a brief description. Format as:\n1. ...\n2. ...\n3. ...`
+      }
+    ],
+    max_tokens: 128,
+    temperature: 0.8
+  };
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openaiApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("OpenAI API error (continuations):", errorText);
+    throw new Error("OpenAI API error: " + errorText);
+  }
+  const data = await res.json();
+  const text = data.choices[0].message.content.trim();
+  // Parse the three options from the response
+  const matches = text.match(/(?:1\.|•)\s*(.+?)(?:\n|$)(?:2\.|•)\s*(.+?)(?:\n|$)(?:3\.|•)\s*(.+)/s);
+  if (matches && matches.length === 4) {
+    return [
+      { description: matches[1].trim() },
+      { description: matches[2].trim() },
+      { description: matches[3].trim() }
+    ];
+  }
+  // Fallback: split by lines if not matched
+  const lines = text.split('\n').map(l => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+  return lines.slice(0, 3).map(desc => ({ description: desc }));
 }
 
 function withCORSHeaders(resp: Response): Response {
@@ -298,7 +540,10 @@ serve(async (req: Request): Promise<Response> => {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', story_id);
 
-    return withCORSHeaders(new Response(JSON.stringify({
+    // Generate three possible continuations (brief descriptions) using the new chapter's content
+    const continuations = await generateContinuations(chapter.content, story.preferences || {});
+
+    const response: ContinueStoryResponse = {
       story: {
         id: story.id,
         user_id: story.user_id,
@@ -314,11 +559,14 @@ serve(async (req: Request): Promise<Response> => {
       },
       chapter: {
         id: chapter.id,
+        story_id: chapter.story_id ?? story.id,
         chapter_number: chapter.chapter_number,
         content: chapter.content,
         created_at: chapter.created_at
       }
-    }), { status: 201 }));
+    };
+
+    return withCORSHeaders(new Response(JSON.stringify(response), { status: 201 }));
   } catch (err: any) {
     return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
   }
