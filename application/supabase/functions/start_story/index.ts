@@ -310,6 +310,9 @@ serve(async (req: Request): Promise<Response> => {
     return withCORSHeaders(new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 }));
   }
 
+  // --- LOG: request received ---
+  console.log('[START_STORY] Incoming request', { method: req.method, time: new Date().toISOString() });
+
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -317,6 +320,8 @@ serve(async (req: Request): Promise<Response> => {
     }
     const jwt = authHeader.replace('Bearer ', '').trim();
     const user = await getUserFromJWT(jwt);
+    // --- LOG: user authenticated ---
+    console.log('[START_STORY] Authenticated user', user.id);
 
     const body: RequestBody = await req.json();
     const {
@@ -328,6 +333,9 @@ serve(async (req: Request): Promise<Response> => {
       chapter_length,
       structural_prompt
     } = body;
+
+    // --- LOG: body parsed ---
+    console.log('[START_STORY] Parsed body', { title, reading_level, story_length, chapter_length });
 
     if (!title || !initial_prompt) {
       return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing title or initial_prompt' }), { status: 400 }));
@@ -346,6 +354,7 @@ serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Insert new story
+    console.log('[START_STORY] Inserting story');
     const { data: story, error: storyError } = await supabase
       .from('stories')
       .insert([{
@@ -362,12 +371,17 @@ serve(async (req: Request): Promise<Response> => {
     if (storyError || !story || !story.id) {
       throw new Error(storyError?.message || "Failed to create story or missing story id");
     }
+    // --- LOG: story inserted ---
+    console.log('[START_STORY] Story inserted', story.id);
 
     // Generate first chapter
+    console.log('[START_STORY] Calling OpenAI to generate chapter');
     const content = await generateChapter(initial_prompt, preferences);
+    console.log('[START_STORY] OpenAI response length', content.length);
 
 
     // Insert first chapter
+    console.log('[START_STORY] Inserting first chapter');
     const { data: chapter, error: chapterError } = await supabase
       .from('chapters')
       .insert([{
@@ -379,7 +393,10 @@ serve(async (req: Request): Promise<Response> => {
       .select()
       .single();
     if (chapterError) throw new Error(chapterError.message);
+    // --- LOG: chapter inserted ---
+    console.log('[START_STORY] Chapter inserted', chapter.id);
 
+    // --- LOG: preparing success response ---
     const response: StartStoryResponse = {
       chapter: {
         id: chapter.id,
@@ -390,8 +407,10 @@ serve(async (req: Request): Promise<Response> => {
       }
     };
 
+    console.log('[START_STORY] Success, returning 201');
     return withCORSHeaders(new Response(JSON.stringify(response), { status: 201 }));
   } catch (err: any) {
+    console.error('[START_STORY] Error', err);
     return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
   }
 });

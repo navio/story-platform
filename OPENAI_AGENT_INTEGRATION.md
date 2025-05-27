@@ -18,7 +18,7 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 // Replace the generateChapter function with:
 async function generateChapter(prompt: string, preferences: any) {
   const body = {
-    model: "gpt-3.5-turbo", // or "gpt-4"
+    model: "gpt-4.1-mini-2025-04-14", // or "gpt-4"
     messages: [
       { role: "system", content: "You are a creative story-telling assistant." },
       { role: "user", content: prompt }
