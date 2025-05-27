@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Chapter, Continuation } from '../types/chapter';
 
-const EDGE_BASE = import.meta.env.VITE_EDGE_BASE;
+const EDGE_BASE = "https://xzngetmbbuoxjucudiyo.functions.supabase.co";
 
 export function useChapters(storyId: string | null) {
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -23,10 +23,14 @@ export function useChapters(storyId: string | null) {
       }
       setFetchingContinuations(true);
       try {
+        // Log the EDGE_BASE and request details for debugging
+        console.log('[fetchContinuations] EDGE_BASE:', EDGE_BASE);
         // Get session for access token
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not authenticated');
-        const res = await fetch(`${EDGE_BASE}/get_continuations`, {
+        const url = `${EDGE_BASE}/get_continuations`;
+        console.log('[fetchContinuations] Requesting:', url, 'with content:', chapterContent);
+        const res = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -37,9 +41,13 @@ export function useChapters(storyId: string | null) {
           }),
         });
         const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Failed to fetch continuations');
+        if (!res.ok) {
+          console.error('[fetchContinuations] Error response:', result);
+          throw new Error(result.error || 'Failed to fetch continuations');
+        }
         setContinuations(result.continuations || []);
-      } catch {
+      } catch (err) {
+        console.error('[fetchContinuations] Exception:', err);
         setContinuations([]);
       }
       setFetchingContinuations(false);
