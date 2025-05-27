@@ -1,47 +1,24 @@
-import React, { useState } from 'react';
-import { supabase } from './supabaseClient';
-import { useStories } from './hooks/useStories';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
   Box,
-  Paper,
-  Button,
-  TextField,
   CircularProgress,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   useMediaQuery,
   useTheme,
   Container,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Slider,
-  InputAdornment
+  Stack
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout';
-import AddIcon from '@mui/icons-material/Add';
-import SettingsIcon from '@mui/icons-material/Settings';
+import React, { useState } from 'react';
 
 import AppHeader from './components/AppHeader';
+import DeleteStoryDialog from './components/DeleteStoryDialog';
+import NewStoryDialog from './components/NewStoryDialog';
 import StoriesDrawer from './components/StoriesDrawer';
 import StoryList from './components/StoryList';
 import StoryView from './components/StoryView';
-import type { Continuation } from './types/chapter';
-import NewStoryDialog from './components/NewStoryDialog';
-
-import type { Story } from './types/story';
-import DeleteStoryDialog from './components/DeleteStoryDialog';
 import { useChapters } from './hooks/useChapters';
+import { useStories } from './hooks/useStories';
+import { supabase } from './supabaseClient';
+import type { Continuation } from './types/chapter';
+import type { Story } from './types/story';
 
 const EDGE_BASE = import.meta.env.VITE_EDGE_BASE;
 
@@ -51,9 +28,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     loading,
     error,
     createStory,
-    updateStory,
     deleteStory,
-    setStories,
     setError,
   } = useStories();
 
@@ -196,8 +171,24 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               structural_prompt: editStructuralPrompt,
             });
             setShowStorySettings(false);
-          } catch (err: any) {
-            setEditSettingsError(err.message);
+          } catch (err: unknown) {
+            // Safely extract error message for all error types
+            let message = 'An unexpected error occurred';
+            if (err instanceof Error) {
+              message = err.message;
+            } else if (typeof err === 'string') {
+              message = err;
+            } else if (
+              typeof err === 'object' &&
+              err !== null &&
+              // Type guard for objects with a string 'message' property
+              typeof (err as { message?: unknown }).message === 'string'
+            ) {
+              message = (err as { message: string }).message;
+            }
+            // Optionally log the error for debugging
+            // console.error('Edit settings error:', err);
+            setEditSettingsError(message);
           }
           setEditSettingsLoading(false);
         }}
@@ -209,132 +200,132 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   // Main dashboard view
   return (
-  <Box>
-    <AppHeader
-      isMobile={isMobile}
-      selectedStory={selectedStory}
-      onSignOut={onSignOut}
-      setDrawerOpen={setDrawerOpen}
-      setShowNewStory={setShowNewStory}
-    />
-    {isMobile && (
-      <StoriesDrawer
-        drawerOpen={drawerOpen}
-        setDrawerOpen={setDrawerOpen}
-        stories={stories}
+    <Box>
+      <AppHeader
+        isMobile={isMobile}
         selectedStory={selectedStory}
-        setSelectedStory={setSelectedStory}
+        onSignOut={onSignOut}
+        setDrawerOpen={setDrawerOpen}
+        setShowNewStory={setShowNewStory}
       />
-    )}
-    <Container
-      maxWidth={false}
-      disableGutters
-      sx={{
-        mt: 0,
-        px: 0,
-        width: '100vw',
-        minHeight: isMobile ? '100vh' : 'auto',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: isMobile ? 'flex-start' : 'center',
-        overflow: 'hidden',
-        bgcolor: isMobile ? '#faf9f6' : 'transparent',
-      }}
-    >
-      <Stack
-        direction={isMobile ? 'column' : 'row'}
-        spacing={4}
-        alignItems={isMobile ? 'flex-start' : 'center'}
-        justifyContent="center"
-        sx={{
-          width: '100%',
-          minHeight: isMobile ? '100vh' : 'auto',
-          maxWidth: isMobile ? '100vw' : 900,
-          mx: 'auto',
-          py: isMobile ? 0 : 6,
-          px: isMobile ? 0 : 2,
-          boxSizing: 'border-box',
-        }}
-      >
-        <StoryList
+      {isMobile && (
+        <StoriesDrawer
+          drawerOpen={drawerOpen}
+          setDrawerOpen={setDrawerOpen}
           stories={stories}
           selectedStory={selectedStory}
           setSelectedStory={setSelectedStory}
-          onSignOut={onSignOut}
-          setShowNewStory={setShowNewStory}
-          onDelete={async (story: Story) => {
-            await deleteStory(story.id);
-            if ((selectedStory as Story | null)?.id === (story as Story).id) setSelectedStory(null);
-          }}
-          error={error}
         />
-        {/* Main Content (empty for now, could add welcome/info) */}
-        {!isMobile && (
-          <Box flex={1} />
-        )}
-      </Stack>
-    </Container>
-    <NewStoryDialog
-      open={showNewStory}
-      loading={loading}
-      error={error}
-      newTitle={newTitle}
-      setNewTitle={setNewTitle}
-      initialPrompt={initialPrompt}
-      setInitialPrompt={setInitialPrompt}
-      readingLevel={readingLevel}
-      setReadingLevel={setReadingLevel}
-      storyLength={storyLength}
-      setStoryLength={setStoryLength}
-      chapterLength={chapterLength}
-      setChapterLength={setChapterLength}
-      structuralPrompt={structuralPrompt}
-      setStructuralPrompt={setStructuralPrompt}
-      onClose={() => setShowNewStory(false)}
-      onCreate={async (e) => {
-        e.preventDefault();
-        try {
-          const newStory = await createStory({
-            title: newTitle,
-            initialPrompt,
-            readingLevel,
-            storyLength,
-            chapterLength,
-            structuralPrompt,
-          });
-          setSelectedStory(newStory); // Navigate to the new story
-          setShowNewStory(false);
-          setNewTitle('');
-          setInitialPrompt('');
-          setReadingLevel(3);
-          setStoryLength(10);
-          setChapterLength("A full paragraph");
-          setStructuralPrompt('');
-          // Clear any error state after successful creation
-          setError(null);
-        } catch (err) {
-          // Log error for debugging and keep dialog open so error is visible
-          // eslint-disable-next-line no-console
-          console.error('Error creating story:', err);
-        }
-      }}
-    />
-    {/* StorySettingsDialog is only available in story view */}
-    {/* Delete Confirmation Dialog */}
-    <DeleteStoryDialog
-      open={deleteDialogOpen}
-      storyToDelete={storyToDelete}
-      loading={loading}
-      onClose={() => setDeleteDialogOpen(false)}
-      onDelete={async (story: Story) => {
-        if (selectedStory && 'id' in selectedStory && story && 'id' in story) {
-          if ((selectedStory as Story).id === story.id) setSelectedStory(null);
-        }
-        await deleteStory(story.id);
-        setDeleteDialogOpen(false);
-        setStoryToDelete(null);
-      }}
-    />
-  </Box>
-);
+      )}
+      <Container
+        maxWidth={false}
+        disableGutters
+        sx={{
+          mt: 0,
+          px: 0,
+          width: '100vw',
+          minHeight: isMobile ? '100vh' : 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          overflow: 'hidden',
+          bgcolor: isMobile ? '#faf9f6' : 'transparent',
+        }}
+      >
+        <Stack
+          direction={isMobile ? 'column' : 'row'}
+          spacing={4}
+          alignItems={isMobile ? 'flex-start' : 'center'}
+          justifyContent="center"
+          sx={{
+            width: '100%',
+            minHeight: isMobile ? '100vh' : 'auto',
+            maxWidth: isMobile ? '100vw' : 900,
+            mx: 'auto',
+            py: isMobile ? 0 : 6,
+            px: isMobile ? 0 : 2,
+            boxSizing: 'border-box',
+          }}
+        >
+          <StoryList
+            stories={stories}
+            selectedStory={selectedStory}
+            setSelectedStory={setSelectedStory}
+            onSignOut={onSignOut}
+            setShowNewStory={setShowNewStory}
+            onDelete={async (story: Story) => {
+              await deleteStory(story.id);
+              if ((selectedStory as Story | null)?.id === (story as Story).id) setSelectedStory(null);
+            }}
+            error={error}
+          />
+          {/* Main Content (empty for now, could add welcome/info) */}
+          {!isMobile && (
+            <Box flex={1} />
+          )}
+        </Stack>
+      </Container>
+      <NewStoryDialog
+        open={showNewStory}
+        loading={loading}
+        error={error}
+        newTitle={newTitle}
+        setNewTitle={setNewTitle}
+        initialPrompt={initialPrompt}
+        setInitialPrompt={setInitialPrompt}
+        readingLevel={readingLevel}
+        setReadingLevel={setReadingLevel}
+        storyLength={storyLength}
+        setStoryLength={setStoryLength}
+        chapterLength={chapterLength}
+        setChapterLength={setChapterLength}
+        structuralPrompt={structuralPrompt}
+        setStructuralPrompt={setStructuralPrompt}
+        onClose={() => setShowNewStory(false)}
+        onCreate={async (e) => {
+          e.preventDefault();
+          try {
+            const newStory = await createStory({
+              title: newTitle,
+              initialPrompt,
+              readingLevel,
+              storyLength,
+              chapterLength,
+              structuralPrompt,
+            });
+            setSelectedStory(newStory); // Navigate to the new story
+            setShowNewStory(false);
+            setNewTitle('');
+            setInitialPrompt('');
+            setReadingLevel(3);
+            setStoryLength(10);
+            setChapterLength("A full paragraph");
+            setStructuralPrompt('');
+            // Clear any error state after successful creation
+            setError(null);
+          } catch (err) {
+            // Log error for debugging and keep dialog open so error is visible
+             
+            console.error('Error creating story:', err);
+          }
+        }}
+      />
+      {/* StorySettingsDialog is only available in story view */}
+      {/* Delete Confirmation Dialog */}
+      <DeleteStoryDialog
+        open={deleteDialogOpen}
+        storyToDelete={storyToDelete}
+        loading={loading}
+        onClose={() => setDeleteDialogOpen(false)}
+        onDelete={async (story: Story) => {
+          if (selectedStory && 'id' in selectedStory && story && 'id' in story) {
+            if ((selectedStory as Story).id === story.id) setSelectedStory(null);
+          }
+          await deleteStory(story.id);
+          setDeleteDialogOpen(false);
+          setStoryToDelete(null);
+        }}
+      />
+    </Box>
+  );
 }

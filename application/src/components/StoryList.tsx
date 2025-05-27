@@ -1,4 +1,5 @@
-import React from 'react';
+import AddIcon from '@mui/icons-material/Add';
+import LogoutIcon from '@mui/icons-material/Logout';
 import {
   Paper,
   Typography,
@@ -9,8 +10,8 @@ import {
   Button,
   Box,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import LogoutIcon from '@mui/icons-material/Logout';
+import React from 'react';
+
 import type { Story } from '../types/story';
 
 interface StoryListProps {

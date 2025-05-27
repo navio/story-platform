@@ -1,8 +1,9 @@
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
+
 import Auth from './Auth';
 import Dashboard from './Dashboard';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { supabase } from './supabaseClient';
 import theme from './theme';
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];

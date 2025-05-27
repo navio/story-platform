@@ -4,7 +4,7 @@ export type Story = {
   status: string;
   created_at: string;
   updated_at: string;
-  preferences?: any;
+  preferences?: Record<string, unknown>;
   story_length?: number;
   reading_level?: number;
   chapter_length?: string;

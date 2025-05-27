@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { supabase } from '../supabaseClient';
 import type { Story } from '../types/story';
 
@@ -49,7 +50,7 @@ export function useStories() {
       .order('updated_at', { ascending: false });
     if (storiesError) setError(storiesError.message);
     else if (!storiesData) {
-      setError(storiesError ? (storiesError as any).message : 'No data returned');
+      setError(storiesError ? (storiesError as Error).message : 'No data returned');
       setLoading(false);
       return;
     }
@@ -101,7 +102,7 @@ export function useStories() {
         .order('created_at', { ascending: false });
       if (allStoriesError) throw new Error(allStoriesError.message);
       // Try to find the story with the matching title (and optionally user_id if available)
-      const newStory = allStories?.find((s: any) => s.title === params.title) || (allStories && allStories[0]);
+      const newStory = allStories?.find((s: Story) => s.title === params.title) || (allStories && allStories[0]);
       if (!newStory) {
         setError('Story not found after creation');
         setLoading(false);
@@ -110,10 +111,16 @@ export function useStories() {
       setStories(prev => [newStory, ...prev]);
       setLoading(false);
       return newStory as Story;
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-      throw err;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        setLoading(false);
+        throw err;
+      } else {
+        setError('An unknown error occurred');
+        setLoading(false);
+        throw err;
+      }
     }
   }, []);
 
@@ -152,10 +159,16 @@ export function useStories() {
       );
       setLoading(false);
       return data as Story;
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-      throw err;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        setLoading(false);
+        throw err;
+      } else {
+        setError('An unknown error occurred');
+        setLoading(false);
+        throw err;
+      }
     }
   }, []);
 
@@ -182,10 +195,16 @@ export function useStories() {
       }
       setStories(prev => prev.filter(s => s.id !== storyId));
       setLoading(false);
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-      throw err;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        setLoading(false);
+        throw err;
+      } else {
+        setError('An unknown error occurred');
+        setLoading(false);
+        throw err;
+      }
     }
   }, []);
 

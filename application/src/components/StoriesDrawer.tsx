@@ -1,5 +1,6 @@
-import React from 'react';
 import { Drawer, Box, Typography, Divider, List, ListItem, ListItemText } from '@mui/material';
+import React from 'react';
+
 import type { Story } from '../types/story';
 
 interface StoriesDrawerProps {

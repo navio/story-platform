@@ -1,7 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+
 import '@testing-library/jest-dom';
-import StoryList from '../StoryList';
 import { vi } from 'vitest';
+
+import StoryList from '../StoryList';
 
 const stories = [
   {

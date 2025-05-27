@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+
 import { supabase } from '../supabaseClient';
 import type { Chapter, Continuation } from '../types/chapter';
 
@@ -13,32 +14,7 @@ export function useChapters(storyId: string | null) {
   const [newPrompt, setNewPrompt] = useState('');
 
   // Fetch chapters for a story
-  const fetchChapters = useCallback(async () => {
-    if (!storyId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('chapters')
-        .select('*')
-        .eq('story_id', storyId)
-        .order('chapter_number', { ascending: true });
-      if (fetchError) throw fetchError;
-      setChapters(data || []);
-      // Fetch continuations for the latest chapter if any
-      if (data && data.length > 0) {
-        const lastChapter = data[data.length - 1];
-        fetchContinuations(lastChapter.content);
-      } else {
-        setContinuations([]);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch chapters');
-    }
-    setLoading(false);
-  }, [storyId]);
-
-  // Fetch continuations for a given chapter content
+  // Move fetchContinuations above fetchChapters to avoid initialization errors
   const fetchContinuations = useCallback(
     async (chapterContent: string) => {
       if (!chapterContent) {
@@ -63,13 +39,44 @@ export function useChapters(storyId: string | null) {
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Failed to fetch continuations');
         setContinuations(result.continuations || []);
-      } catch (err: any) {
+      } catch {
         setContinuations([]);
       }
       setFetchingContinuations(false);
     },
-    []
+    [setContinuations, setFetchingContinuations]
   );
+
+  const fetchChapters = useCallback(async () => {
+    if (!storyId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('chapters')
+        .select('*')
+        .eq('story_id', storyId)
+        .order('chapter_number', { ascending: true });
+      if (fetchError) throw fetchError;
+      setChapters(data || []);
+      // Fetch continuations for the latest chapter if any
+      if (data && data.length > 0) {
+        const lastChapter = data[data.length - 1];
+        fetchContinuations(lastChapter.content);
+      } else {
+        setContinuations([]);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to fetch chapters');
+      } else {
+        setError('Failed to fetch chapters');
+      }
+    }
+    setLoading(false);
+  }, [storyId, fetchContinuations]);
+
+  // (Removed duplicate fetchContinuations declaration)
 
   // Add a new chapter via Edge Function
   const addChapter = useCallback(
@@ -100,8 +107,12 @@ export function useChapters(storyId: string | null) {
           return updated;
         });
         setNewPrompt('');
-      } catch (err: any) {
-        setError(err.message || 'Failed to add chapter');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || 'Failed to add chapter');
+        } else {
+          setError('Failed to add chapter');
+        }
       }
       setLoading(false);
     },

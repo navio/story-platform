@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -7,6 +6,8 @@ import {
   Button,
   Typography,
 } from '@mui/material';
+import React from 'react';
+
 import type { Story } from '../types/story';
 
 interface DeleteStoryDialogProps {

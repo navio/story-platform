@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { supabase } from './supabaseClient';
+import GoogleIcon from '@mui/icons-material/Google';
 import {
   Box,
   Paper,
@@ -9,7 +8,9 @@ import {
   Link,
   CircularProgress
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
+import React, { useState } from 'react';
+
+import { supabase } from './supabaseClient';
 
 type AuthView = 'sign-in' | 'sign-up';
 
@@ -112,8 +113,20 @@ export default function Auth() {
                 options: { redirectTo: window.location.origin }
               });
               if (error) setError(error.message);
-            } catch (err: any) {
-              setError(err.message);
+            } catch (err: unknown) {
+              let message = 'An unexpected error occurred';
+              if (err instanceof Error) {
+                message = err.message;
+              } else if (typeof err === 'string') {
+                message = err;
+              } else if (
+                typeof err === 'object' &&
+                err !== null &&
+                typeof (err as { message?: unknown }).message === 'string'
+              ) {
+                message = (err as { message: string }).message;
+              }
+              setError(message);
             }
             setLoading(false);
           }}
@@ -125,7 +138,7 @@ export default function Auth() {
           {view === 'sign-in' ? (
             <>
               <Typography variant="body2" component="span">
-                Don't have an account?{' '}
+               {`Don't have an account?`}
               </Typography>
               <Link
                 component="button"

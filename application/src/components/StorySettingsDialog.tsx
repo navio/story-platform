@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,6 +10,7 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
+import React from 'react';
 
 interface StorySettingsDialogProps {
   open: boolean;

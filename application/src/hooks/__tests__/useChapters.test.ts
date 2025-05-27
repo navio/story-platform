@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
-import { useChapters } from '../useChapters';
 import { vi } from 'vitest';
+
+import { useChapters } from '../useChapters';
 
 // Mock supabase client
 vi.mock('../../supabaseClient', () => ({

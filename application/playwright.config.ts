@@ -1,4 +1,5 @@
 // Load environment variables from .env for Playwright tests
+//@ts-ignore
 require('dotenv').config();
 
 import { defineConfig, devices } from '@playwright/test';

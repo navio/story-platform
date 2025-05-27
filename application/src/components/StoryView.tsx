@@ -1,4 +1,5 @@
-import React from 'react';
+import MenuIcon from '@mui/icons-material/Menu';
+import SettingsIcon from '@mui/icons-material/Settings';
 import {
   Box,
   Container,
@@ -7,16 +8,14 @@ import {
   Button,
   CircularProgress,
   TextField,
-  Slider,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import SettingsIcon from '@mui/icons-material/Settings';
-import type { Story } from '../types/story';
-import type { Chapter } from '../types/chapter';
+import React from 'react';
+
 import ChapterList from './ChapterList';
 import StorySettingsDialog from './StorySettingsDialog';
-
+import type { Chapter } from '../types/chapter';
 import type { Continuation } from '../types/chapter';
+import type { Story } from '../types/story';
 
 interface StoryViewProps {
   selectedStory: Story;
