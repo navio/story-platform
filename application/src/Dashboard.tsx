@@ -172,7 +172,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Not authenticated');
             const res = await fetch(`${EDGE_BASE}/update_story`, {
-              method: 'PUT',
+              method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`,
