@@ -109,6 +109,66 @@ async function getUserFromJWT(jwt: string): Promise<User> {
 
 // Placeholder for agent call (replace with real agent integration)
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+/**
+ * Generate a full story arc/outline (e.g., hero’s journey) as a structured array of steps.
+ * Returns an array of arc steps, each with a title and description.
+ */
+async function generateStoryArc(
+  title: string,
+  initial_prompt: string,
+  preferences: Preferences
+): Promise<{ steps: { title: string; description: string }[] }> {
+  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  const body = {
+    model: "gpt-4.1-mini-2025-04-14",
+    messages: [
+      {
+        role: "system",
+        content: `You are an expert story architect. Given a story title, initial prompt, and preferences, generate a full story arc/outline using a classic structure (e.g., hero's journey, three-act, or similar). 
+Return a JSON object with a "steps" array, where each step has a "title" and "description". 
+The arc should have as many steps as the intended story_length (default 7 if not specified). 
+Each step should be concise, actionable, and guide the narrative for a chapter.`
+      },
+      {
+        role: "user",
+        content: `Title: ${title}
+Initial Prompt: ${initial_prompt}
+Preferences: ${JSON.stringify(preferences)}
+Story Length: ${preferences?.story_length || 7}
+Reading Level: ${readinglevel}
+If a structural_prompt is present, incorporate it into the arc.
+Respond ONLY with valid JSON.`
+      }
+    ],
+    max_tokens: 512,
+    temperature: 0.7
+  };
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openaiApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("OpenAI API error (arc):", errorText);
+    throw new Error("OpenAI API error: " + errorText);
+  }
+  const data = await res.json();
+  // Try to parse the JSON from the LLM response
+  try {
+    const arc = JSON.parse(data.choices[0].message.content.trim());
+    if (arc && Array.isArray(arc.steps)) {
+      return arc;
+    }
+    throw new Error("Malformed arc structure");
+  } catch (e) {
+    console.error("Failed to parse story arc JSON:", e, data.choices[0].message.content);
+    throw new Error("Failed to parse story arc JSON");
+  }
+}
 
 async function generateChapter(prompt: string, preferences: Preferences): Promise<string> {
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
@@ -353,7 +413,18 @@ serve(async (req: Request): Promise<Response> => {
     // Create Supabase client for DB ops
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Insert new story
+    // --- Generate story arc/outline ---
+    console.log('[START_STORY] Generating story arc');
+    const arc = await generateStoryArc(title, initial_prompt, {
+      ...preferences,
+      reading_level,
+      story_length,
+      chapter_length,
+      structural_prompt
+    });
+    console.log('[START_STORY] Story arc generated', arc);
+
+    // Insert new story with arc
     console.log('[START_STORY] Inserting story');
     const { data: story, error: storyError } = await supabase
       .from('stories')
@@ -364,7 +435,8 @@ serve(async (req: Request): Promise<Response> => {
         reading_level,
         story_length,
         chapter_length,
-        structural_prompt
+        structural_prompt,
+        story_arc: arc
       }])
       .select()
       .single();
@@ -374,13 +446,28 @@ serve(async (req: Request): Promise<Response> => {
     // --- LOG: story inserted ---
     console.log('[START_STORY] Story inserted', story.id);
 
-    // Generate first chapter
-    console.log('[START_STORY] Calling OpenAI to generate chapter');
-    const content = await generateChapter(initial_prompt, preferences);
+    // --- Generate first chapter as a continuation, guided by arc ---
+    const arcStep = arc.steps && arc.steps.length > 0 ? arc.steps[0] : null;
+    let chapterPrompt = `Write the first chapter of the story "${title}".`;
+    if (arcStep) {
+      chapterPrompt += `\n\nThis chapter should follow the arc step: "${arcStep.title}" - ${arcStep.description}`;
+    }
+    if (structural_prompt) {
+      chapterPrompt += `\n\nIncorporate the following structural guidance: ${structural_prompt}`;
+    }
+    chapterPrompt += `\n\nInitial user prompt/context: ${initial_prompt}`;
+
+    console.log('[START_STORY] Calling OpenAI to generate first chapter with arc guidance');
+    const content = await generateChapter(chapterPrompt, {
+      ...preferences,
+      reading_level,
+      story_length,
+      chapter_length,
+      structural_prompt
+    });
     console.log('[START_STORY] OpenAI response length', content.length);
 
-
-    // Insert first chapter
+    // Insert first chapter with structural_metadata
     console.log('[START_STORY] Inserting first chapter');
     const { data: chapter, error: chapterError } = await supabase
       .from('chapters')
@@ -388,7 +475,8 @@ serve(async (req: Request): Promise<Response> => {
         story_id: story.id,
         chapter_number: 1,
         content,
-        prompt: initial_prompt
+        prompt: initial_prompt,
+        structural_metadata: arcStep ? arcStep : null
       }])
       .select()
       .single();
@@ -397,13 +485,27 @@ serve(async (req: Request): Promise<Response> => {
     console.log('[START_STORY] Chapter inserted', chapter.id);
 
     // --- LOG: preparing success response ---
-    const response: StartStoryResponse = {
+    const response = {
+      story: {
+        id: story.id,
+        title: story.title,
+        status: story.status,
+        created_at: story.created_at,
+        updated_at: story.updated_at,
+        preferences: story.preferences,
+        story_length: story.story_length,
+        reading_level: story.reading_level,
+        chapter_length: story.chapter_length,
+        structural_prompt: story.structural_prompt,
+        story_arc: story.story_arc
+      },
       chapter: {
         id: chapter.id,
         story_id: chapter.story_id ?? story.id,
         chapter_number: chapter.chapter_number,
         content: chapter.content,
-        created_at: chapter.created_at
+        created_at: chapter.created_at,
+        structural_metadata: chapter.structural_metadata
       }
     };
 

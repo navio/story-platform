@@ -9,4 +9,5 @@ export type Story = {
   reading_level?: number;
   chapter_length?: string;
   structural_prompt?: string;
+  story_arc?: Record<string, unknown>;
 };

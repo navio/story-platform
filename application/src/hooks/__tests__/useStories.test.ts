@@ -51,7 +51,7 @@ const mockSession = {
   token_type: 'bearer',
   user: mockUser,
 };
-const mockStory = { id: 'story-1', title: 'Test Story' };
+const mockStory = { id: 'story-1', title: 'Test Story', story_arc: { arc: 'hero_journey' } };
 
 describe('useStories', () => {
   beforeEach(() => {

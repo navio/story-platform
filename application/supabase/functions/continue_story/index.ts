@@ -25,6 +25,7 @@ interface Story {
   status?: string;
   created_at?: string;
   updated_at?: string;
+  story_arc?: { steps: { title: string; description: string }[] };
 }
 
 interface Chapter {
@@ -34,6 +35,8 @@ interface Chapter {
   content: string;
   prompt?: string;
   created_at?: string;
+  structural_metadata?: { title: string; description: string };
+  rating?: number;
 }
 
 /**
@@ -508,13 +511,33 @@ serve(async (req: Request): Promise<Response> => {
     // Build context from previous chapters
     const context = chapters.map((ch: any) => ch.content).join('\n\n');
 
-    // Generate next chapter using latest story parameters
-    let content: string;
+    // --- Retrieve story arc and determine current arc step ---
+    const arc = story.story_arc && Array.isArray(story.story_arc.steps) ? story.story_arc as { steps: { title: string; description: string }[] } : null;
     const chapter_number = chapters.length + 1;
+    let arcStep: { title: string; description: string } | null = null;
+    if (arc && arc.steps && arc.steps.length >= chapter_number) {
+      arcStep = arc.steps[chapter_number - 1];
+    }
+
+    // --- Prepare prompt for LLM with arc context ---
+    let chapterPrompt = `Continue the story "${story.title}".`;
+    if (arcStep) {
+      chapterPrompt += `\n\nThis chapter should follow the arc step: "${arcStep.title}" - ${arcStep.description}`;
+    }
+    if (story.structural_prompt) {
+      chapterPrompt += `\n\nIncorporate the following structural guidance: ${story.structural_prompt}`;
+    }
+    if (prompt) {
+      chapterPrompt += `\n\nUser input/context: ${prompt}`;
+    }
+    chapterPrompt += `\n\nStory so far:\n${context}`;
+
+    // Generate next chapter using latest story parameters and arc step
+    let content: string;
     const isFinalChapter = story.story_length && chapter_number >= Number(story.story_length);
     if (isFinalChapter) {
       // Prompt agent to conclude the story and add "The End"
-      content = await generateChapter(context, prompt, {
+      content = await generateChapter(context, chapterPrompt, {
         preferences: story.preferences,
         reading_level: story.reading_level,
         story_length: story.story_length,
@@ -526,7 +549,7 @@ serve(async (req: Request): Promise<Response> => {
         content = content.trim() + "\n\nThe End.";
       }
     } else {
-      content = await generateChapter(context, prompt, {
+      content = await generateChapter(context, chapterPrompt, {
         preferences: story.preferences,
         reading_level: story.reading_level,
         story_length: story.story_length,
@@ -535,14 +558,15 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Insert new chapter
+    // Insert new chapter with structural_metadata
     const { data: chapter, error: chapterError } = await supabase
       .from('chapters')
       .insert([{
         story_id,
         chapter_number,
         content,
-        prompt
+        prompt,
+        structural_metadata: arcStep ? arcStep : null
       }])
       .select()
       .single();
@@ -567,6 +591,7 @@ serve(async (req: Request): Promise<Response> => {
         story_length: story.story_length,
         chapter_length: story.chapter_length,
         structural_prompt: story.structural_prompt,
+        story_arc: story.story_arc,
         status: story.status,
         created_at: story.created_at,
         updated_at: story.updated_at
@@ -576,7 +601,8 @@ serve(async (req: Request): Promise<Response> => {
         story_id: chapter.story_id ?? story.id,
         chapter_number: chapter.chapter_number,
         content: chapter.content,
-        created_at: chapter.created_at
+        created_at: chapter.created_at,
+        structural_metadata: chapter.structural_metadata
       }
     };
 
