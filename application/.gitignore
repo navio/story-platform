@@ -9,6 +9,7 @@ lerna-debug.log*
 .env
 .env.remote
 .node_modules
+tests-results
 
 
 node_modules
