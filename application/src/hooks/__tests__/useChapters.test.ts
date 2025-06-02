@@ -26,7 +26,7 @@ const mockChapter = {
   story_id: 'story-1',
   chapter_number: 1,
   content: 'Once upon a time...',
-  structural_metadata: { structure: 'linear' },
+  structural_metadata: { title: 'Linear', description: 'A linear story structure.' },
   rating: 5,
   created_at: new Date().toISOString(),
 };
@@ -64,7 +64,7 @@ describe('useChapters', () => {
     });
 
     expect(result.current.chapters).toEqual([mockChapter]);
-    expect(result.current.chapters[0].structural_metadata).toEqual({ structure: 'linear' });
+    expect(result.current.chapters[0].structural_metadata).toEqual({ title: 'Linear', description: 'A linear story structure.' });
     expect(result.current.chapters[0].rating).toBe(5);
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();

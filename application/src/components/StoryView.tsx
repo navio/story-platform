@@ -43,6 +43,7 @@ interface StoryViewProps {
   setEditSettingsLoading: (loading: boolean) => void;
   handleUpdateSettings: () => Promise<void>;
   error: string | null;
+  onRateChapter?: (chapterId: string, rating: number) => void;
 }
 
 const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> = ({
@@ -70,6 +71,7 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
   handleUpdateSettings,
   error,
   fetchingContinuations = false,
+  onRateChapter,
 }) => {
   return (
     <Box sx={{border: '1px solid white'}}>
@@ -96,8 +98,27 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
           <Typography variant="h5" fontWeight={700} mb={2}>
             {selectedStory?.title}
           </Typography>
+          {/* Story Arc/Outline */}
+          {selectedStory?.story_arc?.steps && selectedStory.story_arc.steps.length > 0 && (
+            <Box mb={3} p={2} sx={{ background: '#f5f5fa', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+              <Typography variant="subtitle1" fontWeight={600} mb={1}>
+                Story Arc / Outline
+              </Typography>
+              <ol style={{ margin: 0, paddingLeft: 20 }}>
+                {selectedStory.story_arc.steps.map((step, idx) => (
+                  <li key={idx} style={{ marginBottom: 8 }}>
+                    <Typography variant="body1" fontWeight={500}>{step.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">{step.description}</Typography>
+                  </li>
+                ))}
+              </ol>
+            </Box>
+          )}
           <Box minHeight={200} mb={2}>
-            <ChapterList chapters={chapters} />
+            <ChapterList
+              chapters={chapters}
+              onRateChapter={onRateChapter}
+            />
             {addingChapter && (
               <Box textAlign="center" my={4} color="text.secondary" fontStyle="italic">
                 <CircularProgress size={24} sx={{ mr: 1 }} />

@@ -36,6 +36,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [newTitle, setNewTitle] = useState('');
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [initialPrompt, setInitialPrompt] = useState('');
+  const [createdStory, setCreatedStory] = useState<Story | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // --- Chapter logic extracted to hook ---
@@ -49,6 +50,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     fetchChapters,
     addChapter,
     fetchingContinuations,
+    rateChapter,
   } = useChapters(selectedStory?.id ?? null);
 
   // Story settings state (for new story)
@@ -118,6 +120,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         setEditReadingLevel={setEditReadingLevel}
         editStoryLength={editStoryLength}
         setEditStoryLength={setEditStoryLength}
+        onRateChapter={rateChapter}
         editChapterLength={editChapterLength}
         setEditChapterLength={setEditChapterLength}
         editStructuralPrompt={editStructuralPrompt}
@@ -265,6 +268,7 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           )}
         </Stack>
       </Container>
+      {/* Arc preview and story creation dialog */}
       <NewStoryDialog
         open={showNewStory}
         loading={loading}
@@ -281,7 +285,10 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         setChapterLength={setChapterLength}
         structuralPrompt={structuralPrompt}
         setStructuralPrompt={setStructuralPrompt}
-        onClose={() => setShowNewStory(false)}
+        onClose={() => {
+          setShowNewStory(false);
+          setCreatedStory(null);
+        }}
         onCreate={async (e) => {
           e.preventDefault();
           try {
@@ -293,21 +300,26 @@ export default function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               chapterLength,
               structuralPrompt,
             });
-            setSelectedStory(newStory); // Navigate to the new story
-            setShowNewStory(false);
+            setCreatedStory(newStory);
+            // Do not setSelectedStory or close dialog yet; wait for user to click "View Story"
             setNewTitle('');
             setInitialPrompt('');
             setReadingLevel(3);
             setStoryLength(10);
             setChapterLength("A full paragraph");
             setStructuralPrompt('');
-            // Clear any error state after successful creation
             setError(null);
           } catch (err) {
-            // Log error for debugging and keep dialog open so error is visible
-             
             console.error('Error creating story:', err);
           }
+        }}
+        createdStory={createdStory}
+        onViewStory={() => {
+          if (createdStory) {
+            setSelectedStory(createdStory);
+          }
+          setShowNewStory(false);
+          setCreatedStory(null);
         }}
       />
       {/* StorySettingsDialog is only available in story view */}
