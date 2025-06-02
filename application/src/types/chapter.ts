@@ -4,6 +4,11 @@ export type Chapter = {
   content: string;
   created_at: string;
   prompt?: string;
+  structural_metadata?: {
+    title: string;
+    description: string;
+  };
+  rating?: number;
 };
 
 export type Continuation = {

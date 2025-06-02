@@ -75,7 +75,9 @@ export function useChapters(storyId: string | null) {
         setContinuations([]);
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
+        setError((err as any).message);
+      } else if (err instanceof Error) {
         setError(err.message || 'Failed to fetch chapters');
       } else {
         setError('Failed to fetch chapters');
@@ -118,13 +120,51 @@ export function useChapters(storyId: string | null) {
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message || 'Failed to add chapter');
+          throw err;
         } else {
           setError('Failed to add chapter');
+          throw new Error('Failed to add chapter');
         }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
     [storyId, newPrompt, fetchContinuations]
+  );
+
+  // Rate a chapter (update rating)
+  const rateChapter = useCallback(
+    async (chapterId: string, rating: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+        const url = `${EDGE_BASE}/rate_chapter`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ chapter_id: chapterId, rating }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to rate chapter');
+        // Update local chapter rating
+        setChapters((prev) =>
+          prev.map((ch) =>
+            ch.id === chapterId ? { ...ch, rating } : ch
+          )
+        );
+      } catch (err: any) {
+        setError(err.message || 'Failed to rate chapter');
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setChapters]
   );
 
   return {
@@ -140,5 +180,6 @@ export function useChapters(storyId: string | null) {
     fetchingContinuations,
     setChapters, // Exposed for rare advanced use
     setContinuations, // Exposed for advanced use if needed
+    rateChapter, // <-- expose the new method
   };
 }
