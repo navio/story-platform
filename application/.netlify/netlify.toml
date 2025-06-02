@@ -1,0 +1,43 @@
+redirectsOrigin = "config"
+plugins = []
+headers = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/alnavarro/Development/story-platform/application/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+base = "/Users/alnavarro/Development/story-platform/application"
+command = "npm run build"
+
+[build.environment]
+VITE_EDGE_BASE = "https://xzngetmbbuoxjucudiyo.functions.supabase.co"
+VITE_SUPABASE_URL = "https://xzngetmbbuoxjucudiyo.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bmdldG1iYnVveGp1Y3VkaXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MjYzNDIsImV4cCI6MjA2MzAwMjM0Mn0.iLNY2ALVepFIRjgafeFv1dA8X5SlFACBpA3rkrkaUVo"
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
