@@ -9,7 +9,7 @@ lerna-debug.log*
 .env
 .env.remote
 .node_modules
-tests-results
+test-results
 playwright-report
 
 
