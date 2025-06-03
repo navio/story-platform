@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  validateChapterLength,
+  truncateToSpec,
+  ChapterLengthCategory
+} from "../utils/chapter_length.ts";
 
 
 /**
@@ -556,6 +561,16 @@ serve(async (req: Request): Promise<Response> => {
         chapter_length: story.chapter_length,
         structural_prompt: story.structural_prompt
       });
+    }
+
+    // Enforce chapter length constraints if specified
+    if (story.chapter_length && validateChapterLength && truncateToSpec) {
+      const category = story.chapter_length as ChapterLengthCategory;
+      if (!validateChapterLength(content, category)) {
+        console.log('[CONTINUE_STORY] Chapter content does not fit length spec, truncating...');
+        content = truncateToSpec(content, category);
+        console.log('[CONTINUE_STORY] Truncated content length', content.length);
+      }
     }
 
     // Insert new chapter with structural_metadata

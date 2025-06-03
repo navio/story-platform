@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  validateChapterLength,
+  truncateToSpec,
+  ChapterLengthCategory
+} from "../utils/chapter_length.ts";
 
 
 /**
@@ -458,7 +463,7 @@ serve(async (req: Request): Promise<Response> => {
     chapterPrompt += `\n\nInitial user prompt/context: ${initial_prompt}`;
 
     console.log('[START_STORY] Calling OpenAI to generate first chapter with arc guidance');
-    const content = await generateChapter(chapterPrompt, {
+    let content = await generateChapter(chapterPrompt, {
       ...preferences,
       reading_level,
       story_length,
@@ -466,6 +471,16 @@ serve(async (req: Request): Promise<Response> => {
       structural_prompt
     });
     console.log('[START_STORY] OpenAI response length', content.length);
+
+    // Enforce chapter length constraints if specified
+    if (chapter_length && validateChapterLength && truncateToSpec) {
+      const category = chapter_length as ChapterLengthCategory;
+      if (!validateChapterLength(content, category)) {
+        console.log('[START_STORY] Chapter content does not fit length spec, truncating...');
+        content = truncateToSpec(content, category);
+        console.log('[START_STORY] Truncated content length', content.length);
+      }
+    }
 
     // Insert first chapter with structural_metadata
     console.log('[START_STORY] Inserting first chapter');
