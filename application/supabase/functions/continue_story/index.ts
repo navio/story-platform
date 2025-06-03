@@ -131,7 +131,7 @@ async function generateChapter(
     messages: [
       {
         role: "system",
-        content: `# CHAPTER CONTINUATION: MAXIMUM ENGAGEMENT PROTOCOL
+        content: preferences?.structural_prompt?.startsWith('$') ? preferences?.structural_prompt :`# CHAPTER CONTINUATION: MAXIMUM ENGAGEMENT PROTOCOL
 
 Generate the next chapter of the ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
 Length: EXACTLY ${chapterLength}.
