@@ -473,14 +473,14 @@ serve(async (req: Request): Promise<Response> => {
     console.log('[START_STORY] OpenAI response length', content.length);
 
     // Enforce chapter length constraints if specified
-    if (chapter_length && validateChapterLength && truncateToSpec) {
-      const category = chapter_length as ChapterLengthCategory;
-      if (!validateChapterLength(content, category)) {
-        console.log('[START_STORY] Chapter content does not fit length spec, truncating...');
-        content = truncateToSpec(content, category);
-        console.log('[START_STORY] Truncated content length', content.length);
-      }
-    }
+    // if (chapter_length && validateChapterLength && truncateToSpec) {
+    //   const category = chapter_length as ChapterLengthCategory;
+    //   if (!validateChapterLength(content, category)) {
+    //     console.log('[START_STORY] Chapter content does not fit length spec, truncating...');
+    //     content = truncateToSpec(content, category);
+    //     console.log('[START_STORY] Truncated content length', content.length);
+    //   }
+    // }
 
     // Insert first chapter with structural_metadata
     console.log('[START_STORY] Inserting first chapter');
