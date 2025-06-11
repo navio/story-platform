@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
 import {
   validateChapterLength,
   truncateToSpec,
   ChapterLengthCategory
-} from "../utils/chapter_length.ts";
-
+} from "./utils/chapter_length.js";
 
 /**
 * Interfaces and Types
@@ -41,20 +40,6 @@ interface Chapter {
   created_at?: string;
 }
 
-
-/**
- * API response for starting a story.
- *
- * {
- *   story: { ... },
- *   chapter: { ... },
- *   continuations: [
- *     { description: string },
- *     { description: string },
- *     { description: string }
- *   ]
- * }
- */
 /**
  * API response for starting a story.
  * Returns only the first chapter object for the user to read.
@@ -101,8 +86,8 @@ function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
 }
 
 // Environment variables for service role key and project URL
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Helper: get user from JWT
 async function getUserFromJWT(jwt: string): Promise<User> {
@@ -113,9 +98,9 @@ async function getUserFromJWT(jwt: string): Promise<User> {
 }
 
 // Placeholder for agent call (replace with real agent integration)
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const openaiApiKey = process.env.OPENAI_API_KEY!;
 /**
- * Generate a full story arc/outline (e.g., hero’s journey) as a structured array of steps.
+ * Generate a full story arc/outline (e.g., hero's journey) as a structured array of steps.
  * Returns an array of arc steps, each with a title and description.
  */
 async function generateStoryArc(
@@ -356,39 +341,43 @@ Begin with a line that changes everything:
   return data.choices[0].message.content.trim();
 }
 
-
-function withCORSHeaders(resp: Response): Response {
-  const headers = new Headers(resp.headers);
-  headers.set("Access-Control-Allow-Origin", "https://story-platform.netlify.app");
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "authorization, content-type");
-  return new Response(resp.body, { ...resp, headers });
+function withCORSHeaders(statusCode: number, body: any) {
+  return {
+    statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": "https://story-platform.netlify.app",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  };
 }
 
-serve(async (req: Request): Promise<Response> => {
+export const handler: Handler = async (event: HandlerEvent) => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 200 }));
+  if (event.httpMethod === "OPTIONS") {
+    return withCORSHeaders(200, null);
   }
 
-  if (req.method !== 'POST') {
-    return withCORSHeaders(new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 }));
+  if (event.httpMethod !== 'POST') {
+    return withCORSHeaders(405, { error: 'Method not allowed' });
   }
 
   // --- LOG: request received ---
-  console.log('[START_STORY] Incoming request', { method: req.method, time: new Date().toISOString() });
+  console.log('[START_STORY] Incoming request', { method: event.httpMethod, time: new Date().toISOString() });
 
   try {
-    const authHeader = req.headers.get('authorization');
+    const authHeader = event.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing or invalid authorization header' }), { status: 401 }));
+      return withCORSHeaders(401, { error: 'Missing or invalid authorization header' });
     }
     const jwt = authHeader.replace('Bearer ', '').trim();
     const user = await getUserFromJWT(jwt);
     // --- LOG: user authenticated ---
     console.log('[START_STORY] Authenticated user', user.id);
 
-    const body: RequestBody = await req.json();
+    const body: RequestBody = JSON.parse(event.body || '{}');
     const {
       title,
       initial_prompt,
@@ -403,7 +392,7 @@ serve(async (req: Request): Promise<Response> => {
     console.log('[START_STORY] Parsed body', { title, reading_level, story_length, chapter_length });
 
     if (!title || !initial_prompt) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing title or initial_prompt' }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Missing title or initial_prompt' });
     }
 
     if (
@@ -412,7 +401,7 @@ serve(async (req: Request): Promise<Response> => {
       (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Invalid story parameters' });
     }
 
     // Create Supabase client for DB ops
@@ -525,9 +514,9 @@ serve(async (req: Request): Promise<Response> => {
     };
 
     console.log('[START_STORY] Success, returning 201');
-    return withCORSHeaders(new Response(JSON.stringify(response), { status: 201 }));
+    return withCORSHeaders(201, response);
   } catch (err: any) {
     console.error('[START_STORY] Error', err);
-    return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
+    return withCORSHeaders(500, { error: err.message || 'Internal server error' });
   }
-});
+};

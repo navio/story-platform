@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * Types
@@ -29,25 +29,25 @@ interface User {
 /**
  * Helper: CORS
  */
-function withCORSHeaders(resp: Response, origin?: string): Response {
-  const headers = new Headers(resp.headers);
-  // Dynamically set CORS origin for debugging
-  if (origin) {
-    headers.set("Access-Control-Allow-Origin", origin);
-  } else {
-    headers.set("Access-Control-Allow-Origin", "*");
-  }
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "authorization, content-type");
-  headers.set("Access-Control-Allow-Credentials", "true");
-  return new Response(resp.body, { ...resp, headers });
+function withCORSHeaders(statusCode: number, body: any, origin?: string) {
+  return {
+    statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": origin || "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Access-Control-Allow-Credentials": "true",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  };
 }
 
 /**
  * Helper: get user from JWT
  */
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 async function getUserFromJWT(jwt: string): Promise<User> {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -56,34 +56,34 @@ async function getUserFromJWT(jwt: string): Promise<User> {
   return data.user as User;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  const origin = req.headers.get("origin") || undefined;
+export const handler: Handler = async (event: HandlerEvent) => {
+  const origin = event.headers.origin || undefined;
   console.log("[UPDATE_STORY] Incoming request from origin:", origin);
 
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 200 }), origin);
+  if (event.httpMethod === "OPTIONS") {
+    return withCORSHeaders(200, null, origin);
   }
 
-  if (req.method !== "POST") {
-    return withCORSHeaders(new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 }), origin);
+  if (event.httpMethod !== "POST") {
+    return withCORSHeaders(405, { error: "Method not allowed" }, origin);
   }
 
   try {
     // Auth
-    const authHeader = req.headers.get("authorization");
+    const authHeader = event.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: "Missing or invalid authorization header" }), { status: 401 }), origin);
+      return withCORSHeaders(401, { error: "Missing or invalid authorization header" }, origin);
     }
     const jwt = authHeader.replace("Bearer ", "").trim();
     const user = await getUserFromJWT(jwt);
 
     // Parse body
-    const body: UpdateStoryRequest = await req.json();
+    const body: UpdateStoryRequest = JSON.parse(event.body || '{}');
     const { story_id, preferences, reading_level, story_length, chapter_length, structural_prompt, title } = body;
 
     if (!story_id) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: "Missing story_id" }), { status: 400 }), origin);
+      return withCORSHeaders(400, { error: "Missing story_id" }, origin);
     }
 
     // Update story
@@ -105,15 +105,15 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (updateError) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: updateError.message }), { status: 500 }), origin);
+      return withCORSHeaders(500, { error: updateError.message }, origin);
     }
     if (!story) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: "Story not found or not owned by user" }), { status: 404 }), origin);
+      return withCORSHeaders(404, { error: "Story not found or not owned by user" }, origin);
     }
 
-    return withCORSHeaders(new Response(JSON.stringify({ story }), { status: 200 }), origin);
+    return withCORSHeaders(200, { story }, origin);
   } catch (err: any) {
     console.error("[UPDATE_STORY] Error", err);
-    return withCORSHeaders(new Response(JSON.stringify({ error: err.message || "Internal server error" }), { status: 500 }), origin);
+    return withCORSHeaders(500, { error: err.message || "Internal server error" }, origin);
   }
-});
+};

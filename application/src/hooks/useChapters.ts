@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Chapter, Continuation } from '../types/chapter';
 
-const EDGE_BASE = "https://xzngetmbbuoxjucudiyo.functions.supabase.co";
+const EDGE_BASE = import.meta.env.VITE_EDGE_BASE;
 
 export function useChapters(storyId: string | null) {
   const [chapters, setChapters] = useState<Chapter[]>([]);

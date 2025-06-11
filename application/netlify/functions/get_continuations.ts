@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * Represents a possible continuation for the story.
@@ -26,9 +26,9 @@ interface RequestBody {
   preferences?: Preferences;
 }
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const openaiApiKey = process.env.OPENAI_API_KEY!;
 
 // Helper: get user from JWT
 async function getUserFromJWT(jwt: string): Promise<User> {
@@ -89,33 +89,38 @@ ${preferences?.structural_prompt ? "\n" + preferences.structural_prompt : ""}
     ];
   }
   // Fallback: split by lines if not matched
-  const lines = text.split('\n').map(l => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
-  return lines.slice(0, 3).map(desc => ({ description: desc }));
+  const lines = text.split('\n').map((l: string) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+  return lines.slice(0, 3).map((desc: string) => ({ description: desc }));
 }
 
-function withCORSHeaders(resp: Response): Response {
-  const headers = new Headers(resp.headers);
-  headers.set("Access-Control-Allow-Origin", "*");
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "authorization, content-type");
-  return new Response(resp.body, { ...resp, headers });
+function withCORSHeaders(statusCode: number, body: any) {
+  return {
+    statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  };
 }
 
-serve(async (req: Request): Promise<Response> => {
+export const handler: Handler = async (event: HandlerEvent) => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 200 }));
+  if (event.httpMethod === "OPTIONS") {
+    return withCORSHeaders(200, null);
   }
 
-  if (req.method !== 'POST') {
-    return withCORSHeaders(new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 }));
+  if (event.httpMethod !== 'POST') {
+    return withCORSHeaders(405, { error: 'Method not allowed' });
   }
 
   try {
     // Require and validate Bearer token
-    const authHeader = req.headers.get('authorization');
+    const authHeader = event.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing or invalid authorization header' }), { status: 401 }));
+      return withCORSHeaders(401, { error: 'Missing or invalid authorization header' });
     }
     const jwt = authHeader.replace('Bearer ', '').trim();
     let user: User;
@@ -123,22 +128,22 @@ serve(async (req: Request): Promise<Response> => {
       user = await getUserFromJWT(jwt);
     } catch (authErr) {
       console.error("Unauthorized access attempt:", authErr);
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }));
+      return withCORSHeaders(401, { error: 'Unauthorized' });
     }
 
     // Log incoming request for debugging
     let body: RequestBody;
     try {
-      body = await req.json();
+      body = JSON.parse(event.body || '{}');
     } catch (jsonErr) {
       console.error("Failed to parse JSON body:", jsonErr);
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid JSON body', details: String(jsonErr) }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Invalid JSON body', details: String(jsonErr) });
     }
     const { content, preferences = {} } = body;
 
     if (!content) {
       console.error("Missing content in request body");
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing content' }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Missing content' });
     }
 
     let continuations: ContinuationOption[] = [];
@@ -146,21 +151,21 @@ serve(async (req: Request): Promise<Response> => {
       continuations = await generateContinuations(content, preferences);
     } catch (genErr) {
       console.error("Error generating continuations:", genErr);
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Failed to generate continuations', details: String(genErr) }), { status: 500 }));
+      return withCORSHeaders(500, { error: 'Failed to generate continuations', details: String(genErr) });
     }
 
     // Defensive: ensure at least one valid continuation
     if (!continuations || continuations.length === 0) {
       console.error("No valid continuations returned from LLM");
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'No valid continuations returned from LLM', continuations: [] }), { status: 502 }));
+      return withCORSHeaders(502, { error: 'No valid continuations returned from LLM', continuations: [] });
     }
 
     // Log outgoing response for debugging
     console.log("Returning continuations:", continuations);
 
-    return withCORSHeaders(new Response(JSON.stringify({ continuations }), { status: 200 }));
+    return withCORSHeaders(200, { continuations });
   } catch (err: any) {
     console.error("Unexpected error in get_continuations:", err);
-    return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error', details: String(err) }), { status: 500 }));
+    return withCORSHeaders(500, { error: err.message || 'Internal server error', details: String(err) });
   }
-});
+};

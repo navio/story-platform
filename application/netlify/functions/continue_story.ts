@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
 import {
   validateChapterLength,
   truncateToSpec,
   ChapterLengthCategory
-} from "../utils/chapter_length.ts";
-
+} from "./utils/chapter_length.js";
 
 /**
  * Interfaces and Types
@@ -44,26 +43,10 @@ interface Chapter {
   rating?: number;
 }
 
-/**
- * Represents a possible continuation for the story.
- */
 interface ContinuationOption {
   description: string;
 }
 
-/**
- * API response for continuing a story.
- *
- * {
- *   story: { ... },
- *   chapter: { ... },
- *   continuations: [
- *     { description: string },
- *     { description: string },
- *     { description: string }
- *   ]
- * }
- */
 interface ContinueStoryResponse {
   story: Story;
   chapter: Chapter;
@@ -84,7 +67,7 @@ interface RequestBody {
 }
 
 /**
- * Helper validation functions (moved to top-level for global access)
+ * Helper validation functions
  */
 function isPositiveInt(val: unknown): val is number {
   return typeof val === "number" && Number.isInteger(val) && val > 0;
@@ -105,8 +88,8 @@ function isChapterLength(val: unknown): val is Preferences["chapter_length"] {
   );
 }
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 async function getUserFromJWT(jwt: string): Promise<User> {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -115,8 +98,7 @@ async function getUserFromJWT(jwt: string): Promise<User> {
   return data.user as User;
 }
 
-// Placeholder for agent call (replace with real agent integration)
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const openaiApiKey = process.env.OPENAI_API_KEY!;
 
 async function generateChapter(
   context: string,
@@ -364,10 +346,7 @@ The story continues NOW:
   return data.choices[0].message.content.trim();
 }
 
-/**
- * Generates three possible continuations for the next part of the story.
- * Each continuation is a brief description (one sentence or a few words).
- */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function generateContinuations(context: string, preferences: Preferences): Promise<ContinuationOption[]> {
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
   const body = {
@@ -415,37 +394,42 @@ ${preferences?.structural_prompt ? "\n" + preferences.structural_prompt : ""}
     ];
   }
   // Fallback: split by lines if not matched
-  const lines = text.split('\n').map(l => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
-  return lines.slice(0, 3).map(desc => ({ description: desc }));
+  const lines = text.split('\n').map((l: string) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+  return lines.slice(0, 3).map((desc: string) => ({ description: desc }));
 }
 
-function withCORSHeaders(resp: Response): Response {
-  const headers = new Headers(resp.headers);
-  headers.set("Access-Control-Allow-Origin", "*");
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "authorization, content-type");
-  return new Response(resp.body, { ...resp, headers });
+function withCORSHeaders(statusCode: number, body: any) {
+  return {
+    statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  };
 }
 
-serve(async (req: Request): Promise<Response> => {
+export const handler: Handler = async (event: HandlerEvent) => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return withCORSHeaders(new Response(null, { status: 200 }));
+  if (event.httpMethod === "OPTIONS") {
+    return withCORSHeaders(200, null);
   }
 
-  if (req.method !== 'POST') {
-    return withCORSHeaders(new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 }));
+  if (event.httpMethod !== 'POST') {
+    return withCORSHeaders(405, { error: 'Method not allowed' });
   }
 
   try {
-    const authHeader = req.headers.get('authorization');
+    const authHeader = event.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing or invalid authorization header' }), { status: 401 }));
+      return withCORSHeaders(401, { error: 'Missing or invalid authorization header' });
     }
     const jwt = authHeader.replace('Bearer ', '').trim();
     const user = await getUserFromJWT(jwt);
 
-    const body: RequestBody = await req.json();
+    const body: RequestBody = JSON.parse(event.body || '{}');
     const {
       story_id,
       prompt,
@@ -455,7 +439,7 @@ serve(async (req: Request): Promise<Response> => {
       structural_prompt
     } = body;
     if (!story_id) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Missing story_id' }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Missing story_id' });
     }
 
     if (
@@ -464,7 +448,7 @@ serve(async (req: Request): Promise<Response> => {
       (chapter_length !== undefined && !isChapterLength(chapter_length)) ||
       (structural_prompt !== undefined && typeof structural_prompt !== "string")
     ) {
-      return withCORSHeaders(new Response(JSON.stringify({ error: 'Invalid story parameters' }), { status: 400 }));
+      return withCORSHeaders(400, { error: 'Invalid story parameters' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -491,7 +475,7 @@ serve(async (req: Request): Promise<Response> => {
       .eq('id', story_id)
       .single();
     if (storyError || !story) throw new Error('Story not found');
-    if (story.user_id !== user.id) return withCORSHeaders(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }));
+    if (story.user_id !== user.id) return withCORSHeaders(403, { error: 'Forbidden' });
 
     const { data: chapters, error: chaptersError } = await supabase
       .from('chapters')
@@ -505,12 +489,7 @@ serve(async (req: Request): Promise<Response> => {
       typeof story.story_length === "number" &&
       chapters.length >= Number(story.story_length)
     ) {
-      return withCORSHeaders(
-        new Response(
-          JSON.stringify({ error: "Story has reached its maximum number of chapters." }),
-          { status: 400 }
-        )
-      );
+      return withCORSHeaders(400, { error: "Story has reached its maximum number of chapters." });
     }
 
     // Build context from previous chapters
@@ -593,8 +572,8 @@ serve(async (req: Request): Promise<Response> => {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', story_id);
 
-    // Generate three possible continuations (brief descriptions) using the new chapter's content
-    const continuations = await generateContinuations(chapter.content, story.preferences || {});
+    // Note: continuations are not returned in this endpoint, but could be generated if needed
+    // const continuations = await generateContinuations(chapter.content, story.preferences || {});
 
     const response: ContinueStoryResponse = {
       story: {
@@ -621,8 +600,8 @@ serve(async (req: Request): Promise<Response> => {
       }
     };
 
-    return withCORSHeaders(new Response(JSON.stringify(response), { status: 201 }));
+    return withCORSHeaders(201, response);
   } catch (err: any) {
-    return withCORSHeaders(new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 }));
+    return withCORSHeaders(500, { error: err.message || 'Internal server error' });
   }
-});
+};
