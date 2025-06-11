@@ -168,7 +168,12 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
             )
           )}
           <Box display="flex" gap={2} mt={3}>
-            {!(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)) && (
+            {/* {!(selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length)) } */}
+            {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) ? (
+              <Typography variant="h5" color="success.main" fontWeight={700} mt={4} textAlign="center">
+                The End
+              </Typography>
+            ): (
               <>
                 <Box component="form" onSubmit={handleAddChapter} flex={1}>
                   <TextField
@@ -203,11 +208,6 @@ const StoryView: React.FC<StoryViewProps & { fetchingContinuations?: boolean }> 
                   Continue
                 </Button>
               </>
-            )}
-            {selectedStory?.story_length && chapters.length >= Number(selectedStory?.story_length) && (
-              <Typography variant="h5" color="success.main" fontWeight={700} mt={4} textAlign="center">
-                The End
-              </Typography>
             )}
           </Box>
           {error && (

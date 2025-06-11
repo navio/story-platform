@@ -175,8 +175,83 @@ Respond ONLY with valid JSON.`
   }
 }
 
+function getReadingLevel(level) {
+  const readingLevels = {
+    0: {
+      grade: "K (Kindergarten)",
+      lexileRange: "BR–300L",
+      description: "Simple sentences. Repetitive patterns. Picture support. Familiar, concrete nouns and verbs.",
+      age: "4 to 5 years old"
+    },
+    1: {
+      grade: "1st Grade",
+      lexileRange: "200L–500L",
+      description: "Short sentences. Basic story structure (beginning, middle, end). Sight words. Simple punctuation.",
+       age: "5 to 6 years old"
+    },
+    2: {
+      grade: "2nd Grade",
+      lexileRange: "300L–600L",
+      description: "Sequential narratives. Simple compound sentences. Basic description. Introduces cause and effect.",
+       age: "6 to 7 years old"
+    },
+    3: {
+      grade: "3rd Grade",
+      lexileRange: "500L–800L",
+      description: "Richer vocabulary. Dialogue. Multiple paragraphs. Basic figurative language. Deeper emotional content.",
+       age: "7 to 8 years old"
+    },
+    4: {
+      grade: "4th Grade",
+      lexileRange: "600L–900L",
+      description: "More complex plots. Multiple characters. Some abstract ideas. Complex sentences.",
+       age: "8 to 9 years old"
+    },
+    5: {
+      grade: "5th Grade",
+      lexileRange: "700L–1000L",
+      description: "Subplots. Varied sentence structure. Abstract vocabulary. Character development and motivation.",
+       age: "9 to 10 years old"
+    },
+    6: {
+      grade: "6th Grade",
+      lexileRange: "800L–1050L",
+      description: "Persuasive/argumentative elements. Internal character conflict. Theme exploration.",
+       age: "10 to 11 years old"
+    },
+    7: {
+      grade: "7th Grade",
+      lexileRange: "900L–1075L",
+      description: "Symbolism, irony. Complex narrative voice. Moral dilemmas. Extended metaphors.",
+       age: "12 to 13 years old"
+    },
+    8: {
+      grade: "8th Grade",
+      lexileRange: "1000L–1100L",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "14 to 15 years old"
+    },
+    9: {
+      grade: "9th Grade",
+      lexileRange: "1100L+",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "15 to 16 years old"
+    },
+    10: {
+      grade: "10th Grade",
+      lexileRange: "1100L+",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "16 to 17 years old"
+    }
+  };
+
+  const levelData = readingLevels[level];
+  return `${levelData.grade} (${levelData.lexileRange}): ${levelData.description} for readers betwen ${levelData.age}`;
+}
+
+
 async function generateChapter(prompt: string, preferences: Preferences): Promise<string> {
-  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  const readinglevel =  getReadingLevel(preferences?.reading_level ?? 0);
   const body = {
     model: "gpt-4.1-mini-2025-04-14",
     messages: [
@@ -186,7 +261,10 @@ async function generateChapter(prompt: string, preferences: Preferences): Promis
 
 Generate Chapter 1 of a ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
 Length: EXACTLY ${preferences?.chapter_length || "a pargraph"}. 
-Reading level: ${readinglevel}.
+
+## READING LEVEL
+The story must stick to the reading level:
+${readinglevel}
 
 ## PRIME DIRECTIVE
 Create an opening so compelling that readers would pay money to read Chapter 2. Every sentence must be a hook that pulls deeper into the story.

@@ -118,13 +118,87 @@ async function getUserFromJWT(jwt: string): Promise<User> {
 // Placeholder for agent call (replace with real agent integration)
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
+function getReadingLevel(level) {
+  const readingLevels = {
+    0: {
+      grade: "K (Kindergarten)",
+      lexileRange: "BR–300L",
+      description: "Simple sentences. Repetitive patterns. Picture support. Familiar, concrete nouns and verbs.",
+      age: "4 to 5 years old"
+    },
+    1: {
+      grade: "1st Grade",
+      lexileRange: "200L–500L",
+      description: "Short sentences. Basic story structure (beginning, middle, end). Sight words. Simple punctuation.",
+       age: "5 to 6 years old"
+    },
+    2: {
+      grade: "2nd Grade",
+      lexileRange: "300L–600L",
+      description: "Sequential narratives. Simple compound sentences. Basic description. Introduces cause and effect.",
+       age: "6 to 7 years old"
+    },
+    3: {
+      grade: "3rd Grade",
+      lexileRange: "500L–800L",
+      description: "Richer vocabulary. Dialogue. Multiple paragraphs. Basic figurative language. Deeper emotional content.",
+       age: "7 to 8 years old"
+    },
+    4: {
+      grade: "4th Grade",
+      lexileRange: "600L–900L",
+      description: "More complex plots. Multiple characters. Some abstract ideas. Complex sentences.",
+       age: "8 to 9 years old"
+    },
+    5: {
+      grade: "5th Grade",
+      lexileRange: "700L–1000L",
+      description: "Subplots. Varied sentence structure. Abstract vocabulary. Character development and motivation.",
+       age: "9 to 10 years old"
+    },
+    6: {
+      grade: "6th Grade",
+      lexileRange: "800L–1050L",
+      description: "Persuasive/argumentative elements. Internal character conflict. Theme exploration.",
+       age: "10 to 11 years old"
+    },
+    7: {
+      grade: "7th Grade",
+      lexileRange: "900L–1075L",
+      description: "Symbolism, irony. Complex narrative voice. Moral dilemmas. Extended metaphors.",
+       age: "12 to 13 years old"
+    },
+    8: {
+      grade: "8th Grade",
+      lexileRange: "1000L–1100L",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "14 to 15 years old"
+    },
+    9: {
+      grade: "9th Grade",
+      lexileRange: "1100L+",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "15 to 16 years old"
+    },
+    10: {
+      grade: "10th Grade",
+      lexileRange: "1100L+",
+      description: "Sophisticated structure. Layers of meaning. Ambiguity. Philosophical themes.",
+       age: "16 to 17 years old"
+    }
+  };
+
+  const levelData = readingLevels[level];
+  return `${levelData.grade} (${levelData.lexileRange}): ${levelData.description} for readers betwen ${levelData.age}`;
+}
+
 async function generateChapter(
   context: string,
   prompt: string | undefined,
   preferences: Preferences
 ): Promise<string> {
   const userPrompt = prompt ? `Continue the story with this user input: "${prompt}"` : "Continue the story in an interesting way.";
-  const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
+  const readinglevel = getReadingLevel(preferences?.reading_level?? 0);  
   const chapterLength = preferences?.chapter_length || "A full paragraph";
   const body = {
     model: "gpt-4.1-mini-2025-04-14",
@@ -135,7 +209,10 @@ async function generateChapter(
 
 Generate the next chapter of the ${preferences?.story_length || "[NUMBER]"}-chapter thriller.
 Length: EXACTLY ${chapterLength}.
-Reading level: ${readinglevel}.
+
+## READING LEVEL
+The story must adhre to the reading level:
+${readinglevel}
 
 ## PRIME DIRECTIVE
 Create a continuation so compelling that readers would sacrifice sleep to read the next chapter. Every sentence must tighten the narrative noose.
@@ -147,11 +224,9 @@ First sentence must:
 - Directly address the previous chapter's cliffhanger
 - Subvert or exceed reader expectations
 - Maintain momentum without repetitive recap
-- Hook deeper than the previous chapter
-- Promise this chapter will be even more intense
 
 ### THE ESCALATION IMPERATIVE
-This chapter must be MORE than the last:
+Every chapter must be MORE than the last in at least one of the following respects:
 - Higher stakes (what can be lost has increased)
 - Deeper danger (the threat has evolved)
 - Tighter timeline (less time to solve problems)
@@ -193,7 +268,7 @@ This chapter must be MORE than the last:
 ## ADVANCED CONTINUATION TECHNIQUES
 
 ### THE CALLBACK CONSPIRACY
-Reference earlier chapters by:
+Reference earlier chapters by doing one of the following:
 - Revealing hidden significance of "throwaway" details
 - Showing how minor characters were crucial all along
 - Connecting seemingly unrelated events into a pattern
@@ -219,7 +294,7 @@ Structure information reveals:
 ## CHARACTER EVOLUTION ENGINE
 
 ### PRESSURE POINT DEVELOPMENT
-Show how previous events have:
+Show how previous events have done at least one of the following:
 - Created new fears or dissolved old ones
 - Changed fundamental beliefs about the world
 - Altered relationships in irreversible ways
@@ -227,7 +302,7 @@ Show how previous events have:
 - Pushed characters past their breaking points
 
 ### THE TRANSFORMATION TRACKER
-Characters must be different from last chapter:
+Characters must evolve from last chapter in at least one of the following ways:
 - Speech patterns reflect their emotional state
 - Physical descriptions show toll of events
 - Decisions demonstrate learned lessons
@@ -241,11 +316,9 @@ Every setting must:
 - Reflect the emotional state of the scene
 - Contain details that advance the plot
 - Hide clues in plain sight
-- Create atmosphere through specific sensations
-- Feel different from previous chapter locations
 
 ### MICRO-DETAIL DEPLOYMENT
-Include per 100 words:
+Include at least one of the following per 100 words:
 - One unexpected sensory detail
 - One physical sensation that readers feel
 - One environmental element that increases tension
@@ -259,7 +332,6 @@ This chapter's ending must:
 - Be more intense than the previous cliffhanger
 - Feel inevitable yet surprising
 - Create a problem that seems truly unsolvable
-- Promise the next chapter will change everything
 - Make readers physically unable to stop reading
 
 ### CLIFFHANGER VARIETY MATRIX
@@ -270,12 +342,12 @@ Rotate types to maintain freshness:
 - The Cost: Victory requires unthinkable sacrifice
 - The Return: Defeated threat resurfaces stronger
 - The Choice: Two people to save, time for only one
-- The Truth: Everything believed was a lie
+- The Truth: previous assumptions were not true
 
 ## PACING DYNAMICS 2.0
 
 ### RHYTHM ENGINEERING
-- Action scenes: Short. Sharp. Brutal.
+- Action scenes: punchy, with detail
 - Revelation moments: Let sentences breathe with weight
 - Emotional beats: Vary length to mirror feeling
 - Suspense building: Fragments and questions?
@@ -563,15 +635,15 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Enforce chapter length constraints if specified
-    if (story.chapter_length && validateChapterLength && truncateToSpec) {
-      const category = story.chapter_length as ChapterLengthCategory;
-      if (!validateChapterLength(content, category)) {
-        console.log('[CONTINUE_STORY] Chapter content does not fit length spec, truncating...');
-        content = truncateToSpec(content, category);
-        console.log('[CONTINUE_STORY] Truncated content length', content.length);
-      }
-    }
+    // // Enforce chapter length constraints if specified
+    // if (story.chapter_length && validateChapterLength && truncateToSpec) {
+    //   const category = story.chapter_length as ChapterLengthCategory;
+    //   if (!validateChapterLength(content, category)) {
+    //     console.log('[CONTINUE_STORY] Chapter content does not fit length spec, truncating...');
+    //     content = truncateToSpec(content, category);
+    //     console.log('[CONTINUE_STORY] Truncated content length', content.length);
+    //   }
+    // }
 
     // Insert new chapter with structural_metadata
     const { data: chapter, error: chapterError } = await supabase

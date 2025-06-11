@@ -123,6 +123,7 @@ const NewStoryDialog: React.FC<NewStoryDialogProps> = ({
                 min={0}
                 max={10}
                 step={1}
+                defaultValue={0}
                 marks={[
                   { value: 0, label: "K" },
                   { value: 1, label: "1st" },
@@ -148,6 +149,7 @@ const NewStoryDialog: React.FC<NewStoryDialogProps> = ({
               inputProps={{ min: 1, max: 50 }}
               fullWidth
               margin="normal"
+              defaultValue={5}
               InputProps={{
                 endAdornment: <InputAdornment position="end">chapters</InputAdornment>
               }}
