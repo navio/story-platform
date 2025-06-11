@@ -111,7 +111,12 @@ async function generateStoryArc(
 ): Promise<{ steps: { title: string; description: string }[] }> {
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` :'Kindergarden';
   
-  const systemPrompt = loadPrompt('story-arc-system');
+  const systemPrompt = loadPrompt('story-arc-system', {
+    reading_level: readinglevel,
+    story_length: preferences?.story_length,
+    chapter_length: preferences?.chapter_length || "A full paragraph",
+    structural_prompt: preferences?.structural_prompt
+  });
 
   const body = {
     model: "gpt-4.1-mini-2025-04-14",
