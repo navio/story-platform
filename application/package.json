@@ -11,7 +11,7 @@
     "dev:netlify": "netlify dev",
     "dev:remote": "vite --mode remote",
     "start": "vite",
-    "build": "vite build && npm run build:functions",
+    "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
