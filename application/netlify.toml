@@ -1,9 +1,10 @@
 [build]
-  command = "npm ci && npm run build"
+  command = "npm ci --include=dev && npx vite build"
   publish = "dist"
   
 [build.environment]
   NODE_VERSION = "20"
+  NPM_CONFIG_PRODUCTION = "false"
   VITE_EDGE_BASE = "/.netlify/functions"
   VITE_SUPABASE_URL = "https://xzngetmbbuoxjucudiyo.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bmdldG1iYnVveGp1Y3VkaXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MjYzNDIsImV4cCI6MjA2MzAwMjM0Mn0.iLNY2ALVepFIRjgafeFv1dA8X5SlFACBpA3rkrkaUVo"
