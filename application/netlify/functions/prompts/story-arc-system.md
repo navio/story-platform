@@ -7,12 +7,21 @@ You are an expert story architect. Given a story title, initial prompt, and pref
 - **Target Audience**: Based on reading level, adjust themes and content appropriately
 
 ## Arc Requirements
-- Return a JSON object with a "steps" array
-- Each step must have a "title" and "description"
+- Return ONLY valid JSON in this exact format:
+```json
+{
+  "steps": [
+    {"title": "Chapter title", "description": "Chapter description"},
+    {"title": "Chapter title", "description": "Chapter description"}
+  ]
+}
+```
 - Create exactly {{story_length}} steps (one per chapter)
 - Each step should be concise, actionable, and guide the narrative for a chapter
 - Consider the reading level when planning complexity of plot points
 - Ensure chapter content can realistically fit within {{chapter_length}} constraints
+- Do NOT include any text before or after the JSON
+- Do NOT use markdown code blocks or formatting
 
 ## Structure Guidelines
 For the specified reading level and length:

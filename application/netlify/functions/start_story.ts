@@ -1,10 +1,5 @@
-import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import type { Handler, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import {
-  validateChapterLength,
-  truncateToSpec,
-  ChapterLengthCategory
-} from "./utils/chapter_length.js";
 import { loadPrompt } from "./utils/prompt-loader.js";
 
 /**
@@ -18,19 +13,6 @@ interface Preferences {
   [key: string]: any; // Allow additional fields for flexibility
 }
 
-interface Story {
-  id: string;
-  user_id: string;
-  title: string;
-  preferences?: Preferences;
-  reading_level?: number;
-  story_length?: number;
-  chapter_length?: Preferences["chapter_length"];
-  structural_prompt?: string;
-  status?: string;
-  created_at?: string;
-  updated_at?: string;
-}
 
 interface Chapter {
   id: string;
@@ -41,13 +23,6 @@ interface Chapter {
   created_at?: string;
 }
 
-/**
- * API response for starting a story.
- * Returns only the first chapter object for the user to read.
- */
-interface StartStoryResponse {
-  chapter: Chapter;
-}
 
 interface User {
   id: string;
@@ -155,14 +130,48 @@ Respond ONLY with valid JSON.`
   const data = await res.json();
   // Try to parse the JSON from the LLM response
   try {
-    const arc = JSON.parse(data.choices[0].message.content.trim());
-    if (arc && Array.isArray(arc.steps)) {
+    let content = data.choices[0].message.content.trim();
+    console.log("Raw OpenAI response for arc:", content);
+    
+    // Remove potential markdown code blocks
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    // Try to extract JSON if there's extra text
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      content = jsonMatch[0];
+    }
+    
+    const arc = JSON.parse(content);
+    if (arc && Array.isArray(arc.steps) && arc.steps.length > 0) {
+      // Validate each step has required fields
+      for (const step of arc.steps) {
+        if (!step.title || !step.description) {
+          throw new Error("Step missing title or description");
+        }
+      }
       return arc;
     }
-    throw new Error("Malformed arc structure");
+    throw new Error("Malformed arc structure - missing steps array");
   } catch (e) {
-    console.error("Failed to parse story arc JSON:", e, data.choices[0].message.content);
-    throw new Error("Failed to parse story arc JSON");
+    console.error("Failed to parse story arc JSON:", e);
+    console.error("Raw content:", data.choices[0].message.content);
+    
+    // Fallback: create a simple arc structure
+    const storyLength = preferences?.story_length || 7;
+    const fallbackArc: { steps: { title: string; description: string }[] } = {
+      steps: []
+    };
+    
+    for (let i = 1; i <= storyLength; i++) {
+      fallbackArc.steps.push({
+        title: `Chapter ${i}`,
+        description: `Continue the story development for chapter ${i}.`
+      });
+    }
+    
+    console.log("Using fallback arc structure due to JSON parsing failure");
+    return fallbackArc;
   }
 }
 

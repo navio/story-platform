@@ -1,6 +1,5 @@
 import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
 interface PromptVariables {
   story_length?: string | number;
@@ -13,19 +12,13 @@ interface PromptVariables {
  * Gets the current directory for the prompt loader
  */
 function getCurrentDir(): string {
-  // In Netlify functions, __dirname might not work as expected
-  // Try multiple approaches to find the correct path
+  // In Netlify functions, use __dirname if available
   if (typeof __dirname !== 'undefined') {
     return __dirname;
   }
   
-  // For ES modules
-  if (typeof import.meta !== 'undefined' && import.meta.url) {
-    return dirname(fileURLToPath(import.meta.url));
-  }
-  
-  // Fallback - assume we're in the utils directory
-  return process.cwd() + '/netlify/functions/utils';
+  // Fallback for other environments
+  return process.cwd();
 }
 
 /**
