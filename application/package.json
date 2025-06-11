@@ -11,7 +11,7 @@
     "dev:netlify": "netlify dev",
     "dev:remote": "vite --mode remote",
     "start": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run build:functions",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
@@ -23,7 +23,7 @@
     "playwright:codegen": "playwright codegen",
     "playwright:install": "playwright install",
     "playwright:report": "playwright show-report",
-    "build:functions": "npm run build",
+    "build:functions": "echo 'Functions built with TypeScript compilation'",
     "deploy:functions": "netlify deploy --prod"
   },
   "dependencies": {

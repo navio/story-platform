@@ -1,5 +1,6 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { loadPrompt } from "./utils/prompt-loader.js";
 
 /**
  * Represents a possible continuation for the story.
@@ -44,17 +45,19 @@ async function getUserFromJWT(jwt: string): Promise<User> {
  */
 async function generateContinuations(content: string, preferences: Preferences = {}): Promise<ContinuationOption[]> {
   const readinglevel = preferences?.reading_level !== 0 ? `${preferences?.reading_level} Grade` : 'Kindergarden';
+  
+  const systemPrompt = loadPrompt('continuations-system', {
+    reading_level: readinglevel,
+    chapter_length: preferences?.chapter_length || "A full paragraph",
+    structural_prompt: preferences?.structural_prompt
+  });
+
   const body = {
     model: "gpt-4.1-mini-2025-04-14",
     messages: [
       {
         role: "system",
-        content: `You are an expert narrative designer. Given the current story context, suggest three possible directions the story could take next. Each suggestion must be a single line (no more than 10 words), serving as a summary or direction, not a full sentence or paragraph. Make them creative, engaging, and distinct. Do not continue the story, only provide the options.
-
-Story reading level: ${readinglevel}
-Chapter length: ${preferences?.chapter_length || "A full paragraph"}
-${preferences?.structural_prompt ? "\n" + preferences.structural_prompt : ""}
-`
+        content: systemPrompt
       },
       {
         role: "user",

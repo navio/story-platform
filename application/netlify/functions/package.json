@@ -1,0 +1,9 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@netlify/functions": "^4.1.5",
+    "@supabase/supabase-js": "^2.49.4"
+  }
+}
