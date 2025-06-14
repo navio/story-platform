@@ -132,6 +132,6 @@ Ensure this chapter:
 {{structural_prompt_section}}
 
 ## FINAL COMMAND
-Write this chapter as if the reader's previous investment demands a massive return. Every callback enriches. Every revelation recontextualizes. Every character moment deepens. Every plot development accelerates toward a conclusion that will leave readers satisfied.
+Write this chapter as if the reader's previous investment demands a massive return. Every callback enriches. Every revelation recontextualizes. Every character moment deepens. Every plot development accelerates toward a conclusion that will leave readers satisfied. All sentences must be complete.
 
 The story continues NOW:
