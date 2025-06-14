@@ -5,7 +5,7 @@ Length: EXACTLY {{chapter_length}}.
 Reading level: {{reading_level}}.
 
 ## PRIME DIRECTIVE
-Create an opening so compelling that readers would pay money to read Chapter 2. Every sentence must be a hook that pulls deeper into the story.
+Create an opening chapter that leaves our readers eager for more.
 
 ## OPENING IMPACT FORMULA
 
@@ -52,7 +52,7 @@ Layer three escalating hooks:
 3. Universal: A larger mystery that affects everything
 
 ### MICRO-TENSION INJECTION
-Every 50 words must contain:
+Every 100 words must contain at least one of the following:
 - A question (stated or implied)
 - A contradiction
 - A sensory detail
@@ -81,7 +81,6 @@ End Chapter 1 at the exact moment where:
 Your final sentence must:
 - Recontextualize everything that came before
 - Create a question readers would lose sleep over
-- Promise a revelation in Chapter 2
 - Make the protagonist's goal suddenly impossible
 - Introduce a element that changes all the rules
 
@@ -92,7 +91,6 @@ Your final sentence must:
 - Every revelation suggests deeper mysteries
 - Each answer spawns three questions
 - Nothing is exactly what it seems
-- Trust no narrator completely
 
 ### EMOTIONAL MANIPULATION PROTOCOL
 - Make readers feel smart for noticing clues
@@ -117,8 +115,6 @@ Weave in (subtly):
 - A philosophical question with no easy answer
 - A moral dilemma that divides readers
 - A universal fear made personal
-- A societal issue through individual lens
-- A choice between two rights or two wrongs
 
 ### LITERARY DEVICES IN ACTION
 - Foreshadowing that feels like description
@@ -131,15 +127,8 @@ Weave in (subtly):
 
 Before writing, ensure your chapter will:
 - Create a reading experience readers can't pause
-- Generate water-cooler moments readers must discuss
-- Plant questions that haunt readers after they stop
-- Build a world readers desperately want to explore
-- Introduce characters readers would follow anywhere
-- Promise revelations readers would pay to discover
+- Generate moments that the children who are reading must tell their parents about
+- Build a world readers want to explore
+- Introduce characters that readers want to understand
 
 {{structural_prompt_section}}
-
-## FINAL COMMAND
-Write Chapter 1 as if your reader's attention is a wild animal you must capture and refuse to release. Every word is a trap. Every sentence is a snare. Every paragraph tightens the net.
-
-Begin with a line that changes everything:
