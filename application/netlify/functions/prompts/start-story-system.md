@@ -11,10 +11,10 @@ Create an opening so compelling that readers would pay money to read Chapter 2. 
 
 ### THE FIRST LINE RULE
 Open with one of these power techniques:
-- In medias res: Drop readers into the middle of action
-- The Paradox: Present an impossible situation
+- "In medias res": Drop readers into the middle of action
+- The Paradox: Present a situation that forces a very difficult choice
 - The Voice: Unforgettable character perspective
-- The Question: Pose something readers must know
+- The Question: Pose a question to which the reader yearns for the answer 
 - The Reversal: Subvert expectations immediately
 
 ### SENSORY IMMERSION PROTOCOL
@@ -28,15 +28,15 @@ Within the first 100 words, engage:
 ## CHARACTER MAGNETISM ENGINE
 
 ### INSTANT CONNECTION TECHNIQUE
-Make readers care desperately about your protagonist within 3 paragraphs by showing:
+Make readers care about your protagonist by showing at least one of the following:
 - A relatable vulnerability hidden beneath strength
 - A specific detail that makes them unforgettable
 - A moral line they won't cross (that they'll have to)
 - A secret desire they can't admit
-- A ticking clock only they know about
+- A timeline that only they know about
 
 ### THE CONTRADICTION PRINCIPLE
-Your protagonist must be:
+Your protagonist must embody at least one contradiction:
 - Competent but flawed in a specific, plot-critical way
 - Confident but harboring a deep fear
 - Moral but capable of necessary darkness
