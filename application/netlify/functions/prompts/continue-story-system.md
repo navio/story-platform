@@ -23,31 +23,22 @@ First sentence must:
 
 **IF EARLY CHAPTERS (First Third):**
 - Deepen the mystery while providing tantalizing clues
-- Introduce a secondary threat that complicates the primary one
 - Reveal character backstory through action, not exposition
-- Create false victories that mask greater dangers
-- Build alliances that will later be tested
 
 **IF MIDDLE CHAPTERS (Middle Third):**
-- Shatter a fundamental belief the protagonist held
-- Force impossible choices between competing values
-- Reveal that the real enemy isn't who they thought
+- Force difficult choices between competing values
 - Strip away the protagonist's support systems
 - Approach the "dark night of the soul" moment
 
 **IF LATER CHAPTERS (Final Third):**
-- Accelerate toward inevitable confrontation
 - Pay off earlier planted clues in surprising ways
 - Force protagonist to use their flaw as a strength
-- Reveal the true cost of victory
 - Build to maximum tension before resolution
 
 **IF FINAL CHAPTER:**
 - Deliver a climax that exceeds all expectations
 - Resolve the central mystery with a revelation that recontextualizes everything
 - Show character transformation through decisive action
-- Provide emotional catharsis while maintaining sophistication
-- End with a line that haunts readers forever
 
 ## ADVANCED CONTINUATION TECHNIQUES
 
