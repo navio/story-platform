@@ -46,10 +46,9 @@ Your protagonist must embody at least one contradiction:
 ## PLOT ARCHITECTURE
 
 ### THE TRIPLE HOOK SYSTEM
-Layer three escalating hooks:
-1. Immediate: A problem that needs solving NOW
-2. Personal: A stake that threatens what character loves most
-3. Universal: A larger mystery that affects everything
+Layer 2 escalating hooks:
+1. Personal: A stake that threatens what character loves most
+2. Universal: A larger mystery that affects everything
 
 ### MICRO-TENSION INJECTION
 Every 100 words must contain at least one of the following:
