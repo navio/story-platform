@@ -14,8 +14,6 @@ First sentence must:
 - Directly address the previous chapter's cliffhanger
 - Subvert or exceed reader expectations
 - Maintain momentum without repetitive recap
-- Hook deeper than the previous chapter
-- Promise this chapter will be even more intense
 
 ## NARRATIVE PROGRESSION DYNAMICS
 
@@ -23,34 +21,26 @@ First sentence must:
 
 **IF EARLY CHAPTERS (First Third):**
 - Deepen the mystery while providing tantalizing clues
-- Reveal character backstory through action, not exposition
+- Reveal character backstory through action and exposition
 
 **IF MIDDLE CHAPTERS (Middle Third):**
 - Force difficult choices between competing values
 - Strip away the protagonist's support systems
-- Approach the "dark night of the soul" moment
 
 **IF LATER CHAPTERS (Final Third):**
 - Pay off earlier planted clues in surprising ways
 - Force protagonist to use their flaw as a strength
-- Build to maximum tension before resolution
+- Build tension before resolution
 
 **IF FINAL CHAPTER:**
-- Deliver a climax that exceeds all expectations
-- Resolve the central mystery with a revelation that recontextualizes everything
+- Deliver a climactic moment
 - Show character transformation through decisive action
 
 ## ADVANCED CONTINUATION TECHNIQUES
 
-### THE CALLBACK CONSPIRACY
-Reference earlier chapters, and make readers want to reread and comb earlier chapters for clues by:
-- Revealing hidden significance of "throwaway" details that have been layered into previous chapters.
-- Showing how minor characters were crucial all along
-- Connecting seemingly unrelated events into a pattern
-- Transforming apparent coincidences into orchestrated plans
 
 ### TENSION MULTIPLICATION SYSTEM
-Layer multiple types of tension:
+Layer multiple types of tension through the chapters:
 - Physical danger (immediate threat)
 - Emotional conflict (relationship stakes)
 - Temporal urgency (countdown/deadline)
@@ -64,7 +54,7 @@ during the course of the chapter, offer confirmation of reader suspicions, while
 ### THE ESCALATING CLIFFHANGER
 This chapter's ending must:
 - Create a problem that presents a terrible choice for the protagonist
-- Make readers yearn for the next chapter
+- Make readers want to read on to find out what happens in the next chapter
 
 ### CLIFFHANGER VARIETY MATRIX
 Rotate cliffhanger types to maintain freshness:
@@ -83,6 +73,7 @@ Rotate cliffhanger types to maintain freshness:
 - Maintain a quick and interesting tempo by injecting character dialogue
 - Suspense building: Fragments and questions?
 - Climactic moments: ONE. WORD. PARAGRAPHS.
+- Use sprinkled dialogue between characters to increase tempo of the narrative arc.
 
 ### THE BREATHER TRAP
 Include moments that make the reader believe that the action is letting up, mechanisms for this might include
@@ -101,19 +92,23 @@ Without preaching, explore:
 
 ## THE ADDICTION FORMULA 2.0
 
-Ensure this chapter:
+Ensure this chapter, and every chapter:
 - Creates moments that the reader will want to talk about with their parents
 - Creates moments of comedy, where the protagonist does silly things that kids would find funny.
 
 ## CONTINUITY EXCELLENCE
 
 ### CALLBACK CHECKLIST
-- Reference at least 1 specific detail from previous chapters
+- Reference at least 1 specific detail from previous chapters and make readers want to reread and comb earlier chapters for clues.
+- Revealing hidden significance of "throwaway" details that have been layered into previous chapters.
+- Connect seemingly unrelated events into a pattern, or transform apparent coincidences into orchestrated plans
 - Show consequences of earlier character decisions
-- Develop relationships established before
+- Develop relationships
+
 
 ### CONSISTENCY MAINTENANCE
 - Character voices remain distinct but show evolution
+- characters are consistently referenced within and across chapters.
 - Setting details match unless purposefully changed
 - Timeline remains logical and trackable
 - Technology/magic rules stay consistent
@@ -123,6 +118,6 @@ Ensure this chapter:
 {{structural_prompt_section}}
 
 ## FINAL COMMAND
-Write this chapter as if the reader's previous investment demands a massive return. Every callback enriches. Every revelation recontextualizes. Every character moment deepens. Every plot development accelerates toward a conclusion that will leave readers satisfied. All sentences must be complete.
+Write this chapter as if the reader's previous investment demands a massive return. Every callback enriches. Every plot development accelerates toward a conclusion that will leave readers satisfied. All sentences must be complete.
 
 The story continues NOW:
